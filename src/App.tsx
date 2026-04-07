@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { GoogleOAuthProvider, GoogleLogin, googleLogout, type CredentialResponse } from '@react-oauth/google'
+import { ApiError, clearAuthToken, setAuthToken } from './services/api/client'
+import { getOkExample } from './services/api/exampleApi'
 import './App.css'
 
 interface GoogleUser {
@@ -26,16 +28,40 @@ function App() {
   const isConnected = Boolean(dbServer && dbName)
 
   const [user, setUser] = useState<GoogleUser | null>(null)
+  const [apiResult, setApiResult] = useState('')
+  const [apiError, setApiError] = useState('')
+  const [isApiLoading, setIsApiLoading] = useState(false)
 
   function handleLoginSuccess(response: CredentialResponse) {
     if (response.credential) {
+      setAuthToken(response.credential)
       setUser(parseJwt(response.credential))
     }
   }
 
   function handleLogout() {
     googleLogout()
+    clearAuthToken()
     setUser(null)
+  }
+
+  async function handleApiTest() {
+    setIsApiLoading(true)
+    setApiResult('')
+    setApiError('')
+
+    try {
+      const response = await getOkExample()
+      setApiResult(response.status)
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setApiError(error.message)
+      } else {
+        setApiError('Unexpected error while calling API example.')
+      }
+    } finally {
+      setIsApiLoading(false)
+    }
   }
 
   return (
@@ -75,9 +101,21 @@ function App() {
         </header>
 
         <main className="welcome-container">
-          <h1 className="welcome-title">
-            {user ? `Welcome, ${user.name.split(' ')[0]}!` : 'Welcome'}
-          </h1>
+          <div className="welcome-content">
+            <h1 className="welcome-title">
+              {user ? `Welcome, ${user.name.split(' ')[0]}!` : 'Welcome'}
+            </h1>
+
+            <div className="api-card">
+              <h2 className="api-card-title">Typed API Wrapper Test</h2>
+              <p className="api-card-copy">Runs a typed request through interceptors, centralized error handling, and retry logic.</p>
+              <button className="btn" onClick={handleApiTest} disabled={isApiLoading}>
+                {isApiLoading ? 'Testing...' : 'Run API Test'}
+              </button>
+              {apiResult && <p className="api-success">Result: {apiResult}</p>}
+              {apiError && <p className="api-error">Error: {apiError}</p>}
+            </div>
+          </div>
         </main>
 
         <footer className="database-info">
