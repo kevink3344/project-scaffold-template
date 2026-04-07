@@ -61,5 +61,6 @@ jobs:
         with:
           app-name: 'scaffoldtemp'
           slot-name: 'Production'
-          package: node-app
+          package: .
+          clean: true
           
