@@ -24,6 +24,10 @@ jobs:
           node-version: '22.x'
 
       - name: npm install, build, and test
+        env:
+          VITE_DB_SERVER: ${{ secrets.VITE_DB_SERVER }}
+          VITE_DB_NAME: ${{ secrets.VITE_DB_NAME }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
         run: |
           npm install
           npm run build --if-present
