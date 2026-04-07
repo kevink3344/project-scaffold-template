@@ -68,6 +68,11 @@ function App() {
     <GoogleOAuthProvider clientId={googleClientId}>
       <div className="app-container">
         <header className="app-header">
+          <div className="api-test-control">
+            <button className="btn" onClick={handleApiTest} disabled={isApiLoading}>
+              {isApiLoading ? 'Testing...' : 'Run API Test'}
+            </button>
+          </div>
           <div className="auth-section">
             {user ? (
               <div className="user-info">
@@ -106,15 +111,8 @@ function App() {
               {user ? `Welcome, ${user.name.split(' ')[0]}!` : 'Welcome'}
             </h1>
 
-            <div className="api-card">
-              <h2 className="api-card-title">Typed API Wrapper Test</h2>
-              <p className="api-card-copy">Runs a typed request through interceptors, centralized error handling, and retry logic.</p>
-              <button className="btn" onClick={handleApiTest} disabled={isApiLoading}>
-                {isApiLoading ? 'Testing...' : 'Run API Test'}
-              </button>
-              {apiResult && <p className="api-success">Result: {apiResult}</p>}
-              {apiError && <p className="api-error">Error: {apiError}</p>}
-            </div>
+            {apiResult && <p className="api-success">Result: {apiResult}</p>}
+            {apiError && <p className="api-error">Error: {apiError}</p>}
           </div>
         </main>
 
