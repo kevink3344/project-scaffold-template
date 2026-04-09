@@ -25,11 +25,56 @@
 .auth-section {
   display: flex;
   align-items: center;
+  gap: 0.875rem;
 }
 
 .login-section {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: #4b5563;
+  transition: none;
+}
+
+.icon-btn svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+  stroke: currentColor;
+}
+
+.icon-btn:hover,
+.icon-btn:focus,
+.icon-btn:active {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  transform: none;
+}
+
+.theme-toggle-btn {
+  padding: 0;
 }
 
 .login-placeholder {
@@ -135,6 +180,32 @@
   flex-wrap: wrap;
 }
 
+.storage-toggle {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #d5d5d5;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.storage-btn {
+  border-radius: 0;
+  border: none;
+  background-color: #f1f1f1;
+  color: #444;
+  padding: 0.5rem 1rem;
+  min-width: 90px;
+}
+
+.storage-btn:hover {
+  background-color: #e6e6e6;
+}
+
+.storage-btn.active {
+  background-color: #007bff;
+  color: #fff;
+}
+
 /* Connection Status */
 .connection-status {
   display: flex;
@@ -200,8 +271,175 @@
   min-width: 150px;
 }
 
+/* API Playground */
+.playground-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 2rem;
+}
+
+.playground-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.playground-title {
+  font-size: 2rem;
+  color: #222;
+}
+
+.playground-subtitle {
+  margin-top: 0.25rem;
+  color: #666;
+}
+
+.playground-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.playground-card {
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.playground-card h2 {
+  font-size: 1.1rem;
+}
+
+.playground-card p {
+  color: #555;
+}
+
+.playground-result {
+  margin: 0;
+  padding: 0.75rem;
+  background-color: #f8f8f8;
+  border: 1px solid #e3e3e3;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  overflow: auto;
+}
+
+.playground-error {
+  color: #c62828;
+  font-weight: 600;
+}
+
+/* Dark Mode */
+.app-container.dark {
+  background-color: #101216;
+}
+
+.app-container.dark .app-header {
+  background-color: #191d23;
+  border-bottom-color: #2a313b;
+}
+
+.app-container.dark .welcome-title {
+  color: #f1f4f8;
+}
+
+.app-container.dark .database-info {
+  background-color: #191d23;
+  border-top-color: #2a313b;
+}
+
+.app-container.dark .login-placeholder {
+  background-color: #222832;
+  border-color: #343d4a;
+  color: #b8c2cf;
+}
+
+.app-container.dark .login-placeholder small {
+  color: #8d99a8;
+}
+
+.app-container.dark .user-name {
+  color: #f1f4f8;
+}
+
+.app-container.dark .user-email {
+  color: #9aa6b5;
+}
+
+.app-container.dark .user-avatar {
+  border-color: #384252;
+}
+
+.app-container.dark .icon-btn {
+  color: #d0d8e4;
+}
+
+.app-container.dark .storage-toggle {
+  border-color: #3a4452;
+}
+
+.app-container.dark .storage-btn {
+  background-color: #27303c;
+  color: #dce4ef;
+}
+
+.app-container.dark .storage-btn:hover {
+  background-color: #303a48;
+}
+
+.app-container.dark .storage-btn.active {
+  background-color: #007bff;
+  color: #fff;
+}
+
+.app-container.dark .connection-status.disconnected {
+  background-color: #242b35;
+  color: #a9b4c3;
+  border-color: #3a4452;
+}
+
+.app-container.dark .db-info-item {
+  background-color: #252c37;
+}
+
+.app-container.dark .db-label {
+  color: #c7d0dd;
+}
+
+.app-container.dark .db-value {
+  background-color: #1c222b;
+  color: #e3eaf4;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.875rem;
+  }
+
+  .auth-section {
+    width: 100%;
+  }
+
+  .login-section,
+  .user-info {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .header-controls {
+    margin-left: 0;
+  }
+
   .welcome-title {
     font-size: 2.5rem;
   }
@@ -220,7 +458,24 @@
     align-items: flex-start;
   }
 
+  .storage-toggle {
+    width: 100%;
+  }
+
+  .storage-btn {
+    flex: 1;
+  }
+
   .db-value {
     min-width: auto;
+  }
+
+  .playground-page {
+    padding: 1rem;
+  }
+
+  .playground-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

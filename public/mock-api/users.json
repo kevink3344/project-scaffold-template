@@ -1,0 +1,7 @@
+{
+  "users": [
+    { "id": 1, "name": "Avery Kim", "role": "Admin" },
+    { "id": 2, "name": "Jordan Lee", "role": "Support" },
+    { "id": 3, "name": "Riley Patel", "role": "Analyst" }
+  ]
+}
