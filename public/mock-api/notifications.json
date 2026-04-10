@@ -1,0 +1,44 @@
+{
+  "notifications": [
+    {
+      "id": 1001,
+      "title": "New user onboarded",
+      "message": "Taylor Morgan joined the Support team.",
+      "type": "success",
+      "is_read": false,
+      "date_created": "2026-04-09T15:20:00Z"
+    },
+    {
+      "id": 1002,
+      "title": "API latency warning",
+      "message": "Average response time exceeded 600ms for /tickets endpoint.",
+      "type": "warning",
+      "is_read": false,
+      "date_created": "2026-04-09T14:58:00Z"
+    },
+    {
+      "id": 1003,
+      "title": "Weekly report generated",
+      "message": "Your operational report is ready for download.",
+      "type": "info",
+      "is_read": true,
+      "date_created": "2026-04-09T09:10:00Z"
+    },
+    {
+      "id": 1004,
+      "title": "Role permissions updated",
+      "message": "Analyst role now has export access.",
+      "type": "info",
+      "is_read": true,
+      "date_created": "2026-04-08T18:45:00Z"
+    },
+    {
+      "id": 1005,
+      "title": "Backup completed",
+      "message": "Nightly database backup finished successfully.",
+      "type": "success",
+      "is_read": true,
+      "date_created": "2026-04-08T02:15:00Z"
+    }
+  ]
+}

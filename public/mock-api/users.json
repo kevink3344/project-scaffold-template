@@ -1,7 +1,31 @@
 {
   "users": [
-    { "id": 1, "name": "Avery Kim", "role": "Admin" },
-    { "id": 2, "name": "Jordan Lee", "role": "Support" },
-    { "id": 3, "name": "Riley Patel", "role": "Analyst" }
+    {
+      "id": 1,
+      "name": "Avery Kim",
+      "email": "avery.kim@example.com",
+      "role": "Admin",
+      "date_created": "2026-01-15T09:21:00Z",
+      "date_modified": "2026-04-05T14:02:00Z",
+      "team_subscriptions": [201, 204]
+    },
+    {
+      "id": 2,
+      "name": "Jordan Lee",
+      "email": "jordan.lee@example.com",
+      "role": "Support",
+      "date_created": "2026-02-03T11:10:00Z",
+      "date_modified": "2026-04-01T18:45:00Z",
+      "team_subscriptions": [202]
+    },
+    {
+      "id": 3,
+      "name": "Riley Patel",
+      "email": "riley.patel@example.com",
+      "role": "Analyst",
+      "date_created": "2026-02-20T16:35:00Z",
+      "date_modified": "2026-04-08T08:27:00Z",
+      "team_subscriptions": [203]
+    }
   ]
 }

@@ -1,20 +1,34 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiError } from '../services/api/client'
-import { getHealthExample, getOkExample, getUsersExample } from '../services/api/exampleApi'
+import {
+  getHealthExample,
+  getNotificationsExample,
+  getOkExample,
+  getTeamsExample,
+  getUsersExample,
+  type NotificationRecord,
+  type NotificationsResponse,
+  type TeamRecord,
+  type TeamsResponse,
+  type UserRecord,
+  type UsersResponse,
+} from '../services/api/exampleApi'
 
-type EndpointId = 'ok' | 'health' | 'users'
+type EndpointId = 'ok' | 'health' | 'users' | 'notifications' | 'teams'
 
 interface EndpointResult {
   isLoading: boolean
   data: string
   error: string
+  response: unknown | null
 }
 
 interface EndpointDefinition {
   id: EndpointId
   title: string
   description: string
+  endpointPath: string
   run: () => Promise<unknown>
 }
 
@@ -23,26 +37,72 @@ const endpointDefinitions: EndpointDefinition[] = [
     id: 'ok',
     title: 'System Ping',
     description: 'Lightweight endpoint to verify API availability.',
+    endpointPath: '/mock-api/ok.json',
     run: getOkExample,
   },
   {
     id: 'health',
     title: 'Service Health',
     description: 'Returns health details including service timestamp.',
+    endpointPath: '/mock-api/health.json',
     run: getHealthExample,
   },
   {
     id: 'users',
     title: 'Sample Users',
     description: 'Fetches a demo collection of users from mock API.',
+    endpointPath: '/mock-api/users.json',
     run: getUsersExample,
+  },
+  {
+    id: 'teams',
+    title: 'Team List',
+    description: 'Fetches team catalog used by user Team Subscription lookups.',
+    endpointPath: '/mock-api/teams.json',
+    run: getTeamsExample,
+  },
+  {
+    id: 'notifications',
+    title: 'Notifications Feed',
+    description: 'Fetches notification records for home preview and full list view.',
+    endpointPath: '/mock-api/notifications.json',
+    run: getNotificationsExample,
   },
 ]
 
 const initialResults: Record<EndpointId, EndpointResult> = {
-  ok: { isLoading: false, data: '', error: '' },
-  health: { isLoading: false, data: '', error: '' },
-  users: { isLoading: false, data: '', error: '' },
+  ok: { isLoading: false, data: '', error: '', response: null },
+  health: { isLoading: false, data: '', error: '', response: null },
+  users: { isLoading: false, data: '', error: '', response: null },
+  teams: { isLoading: false, data: '', error: '', response: null },
+  notifications: { isLoading: false, data: '', error: '', response: null },
+}
+
+function getUsersFromResponse(response: unknown): UserRecord[] {
+  if (!response || typeof response !== 'object' || !('users' in response)) {
+    return []
+  }
+
+  const typedResponse = response as UsersResponse
+  return Array.isArray(typedResponse.users) ? typedResponse.users : []
+}
+
+function getNotificationsFromResponse(response: unknown): NotificationRecord[] {
+  if (!response || typeof response !== 'object' || !('notifications' in response)) {
+    return []
+  }
+
+  const typedResponse = response as NotificationsResponse
+  return Array.isArray(typedResponse.notifications) ? typedResponse.notifications : []
+}
+
+function getTeamsFromResponse(response: unknown): TeamRecord[] {
+  if (!response || typeof response !== 'object' || !('teams' in response)) {
+    return []
+  }
+
+  const typedResponse = response as TeamsResponse
+  return Array.isArray(typedResponse.teams) ? typedResponse.teams : []
 }
 
 export default function ApiPlaygroundPage() {
@@ -51,7 +111,7 @@ export default function ApiPlaygroundPage() {
   async function runEndpoint(endpoint: EndpointDefinition) {
     setResults(prev => ({
       ...prev,
-      [endpoint.id]: { isLoading: true, data: '', error: '' },
+      [endpoint.id]: { isLoading: true, data: '', error: '', response: null },
     }))
 
     try {
@@ -62,6 +122,7 @@ export default function ApiPlaygroundPage() {
           isLoading: false,
           data: JSON.stringify(response, null, 2),
           error: '',
+          response,
         },
       }))
     } catch (error) {
@@ -71,7 +132,7 @@ export default function ApiPlaygroundPage() {
 
       setResults(prev => ({
         ...prev,
-        [endpoint.id]: { isLoading: false, data: '', error: message },
+        [endpoint.id]: { isLoading: false, data: '', error: message, response: null },
       }))
     }
   }
@@ -89,6 +150,12 @@ export default function ApiPlaygroundPage() {
       <main className="playground-grid">
         {endpointDefinitions.map(endpoint => {
           const endpointState = results[endpoint.id]
+          const endpointUrl = new URL(endpoint.endpointPath, window.location.origin).toString()
+          const users = endpoint.id === 'users' ? getUsersFromResponse(endpointState.response) : []
+          const teams = endpoint.id === 'teams' ? getTeamsFromResponse(endpointState.response) : []
+          const notifications = endpoint.id === 'notifications'
+            ? getNotificationsFromResponse(endpointState.response)
+            : []
 
           return (
             <article className="playground-card" key={endpoint.id}>
@@ -101,6 +168,94 @@ export default function ApiPlaygroundPage() {
               >
                 {endpointState.isLoading ? 'Running...' : 'Run Endpoint'}
               </button>
+
+              <div className="playground-endpoint-url">
+                <span className="url-label">Endpoint URL</span>
+                <code>{endpointUrl}</code>
+              </div>
+
+              {endpoint.id === 'users' && users.length > 0 && (
+                <div className="playground-table-wrap">
+                  <table className="playground-users-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Team Subscription</th>
+                        <th>Date Created</th>
+                        <th>Date Modified</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map(user => (
+                        <tr key={user.id}>
+                          <td>{user.id}</td>
+                          <td>{user.name}</td>
+                          <td>{user.email}</td>
+                          <td>{user.role}</td>
+                          <td>{user.team_subscriptions.join(', ') || 'None'}</td>
+                          <td>{user.date_created}</td>
+                          <td>{user.date_modified}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {endpoint.id === 'teams' && teams.length > 0 && (
+                <div className="playground-table-wrap">
+                  <table className="playground-users-table teams-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teams.map(team => (
+                        <tr key={team.id}>
+                          <td>{team.id}</td>
+                          <td>{team.name}</td>
+                          <td>{team.description}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {endpoint.id === 'notifications' && notifications.length > 0 && (
+                <div className="playground-table-wrap">
+                  <table className="playground-users-table notifications-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Message</th>
+                        <th>Type</th>
+                        <th>Read</th>
+                        <th>Date Created</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {notifications.map(item => (
+                        <tr key={item.id}>
+                          <td>{item.id}</td>
+                          <td>{item.title}</td>
+                          <td>{item.message}</td>
+                          <td>{item.type}</td>
+                          <td>{item.is_read ? 'Yes' : 'No'}</td>
+                          <td>{item.date_created}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
               {endpointState.data && (
                 <pre className="playground-result">{endpointState.data}</pre>

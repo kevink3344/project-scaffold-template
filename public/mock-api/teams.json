@@ -1,0 +1,24 @@
+{
+  "teams": [
+    {
+      "id": 201,
+      "name": "Customer Success",
+      "description": "Handles onboarding and customer retention."
+    },
+    {
+      "id": 202,
+      "name": "Incident Response",
+      "description": "Owns major incidents and postmortems."
+    },
+    {
+      "id": 203,
+      "name": "Data Insights",
+      "description": "Builds operational analytics and reporting."
+    },
+    {
+      "id": 204,
+      "name": "Knowledge Base",
+      "description": "Maintains help center and internal runbooks."
+    }
+  ]
+}
