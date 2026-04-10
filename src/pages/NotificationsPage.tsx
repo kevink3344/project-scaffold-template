@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { RotateCcw } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { NotificationRecord } from '../services/api/exampleApi'
 import {
@@ -6,6 +7,7 @@ import {
   loadNotificationsFeed,
   markAllNotificationsAsRead,
   markNotificationAsRead,
+  markNotificationAsUnread,
 } from '../services/api/notificationsStore'
 
 export default function NotificationsPage() {
@@ -37,6 +39,11 @@ export default function NotificationsPage() {
 
   function handleMarkAsRead(notificationId: number) {
     const updatedNotifications = markNotificationAsRead(notificationId)
+    setNotifications(updatedNotifications)
+  }
+
+  function handleMarkAsUnread(notificationId: number) {
+    const updatedNotifications = markNotificationAsUnread(notificationId)
     setNotifications(updatedNotifications)
   }
 
@@ -89,7 +96,18 @@ export default function NotificationsPage() {
                   <td>{notification.date_created}</td>
                   <td>
                     {notification.is_read ? (
-                      <span className="notification-table-read">Read</span>
+                      <div className="notification-read-actions">
+                        <span className="notification-table-read">Read</span>
+                        <button
+                          type="button"
+                          className="notification-table-icon-action"
+                          aria-label="Mark as unread"
+                          title="Mark as unread"
+                          onClick={() => handleMarkAsUnread(notification.id)}
+                        >
+                          <RotateCcw aria-hidden="true" />
+                        </button>
+                      </div>
                     ) : (
                       <button
                         type="button"

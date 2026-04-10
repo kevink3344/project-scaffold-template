@@ -21,6 +21,26 @@
   align-items: center;
 }
 
+.app-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: #1f2937;
+  font-weight: 700;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.app-brand svg {
+  width: 30px;
+  height: 30px;
+  stroke: currentColor;
+}
+
+.app-brand:hover {
+  color: #111827;
+}
+
 /* Auth Section */
 .auth-section {
   display: flex;
@@ -114,6 +134,8 @@
 }
 
 .notification-preview-list li {
+  position: relative;
+  padding-left: 0.8rem;
   padding-bottom: 0.6rem;
   border-bottom: 1px solid #f0f0f0;
 }
@@ -125,6 +147,17 @@
 
 .notification-preview-list li.is-unread .notification-title {
   color: #111827;
+}
+
+.notification-preview-list li.is-unread::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.42rem;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #dc3545;
 }
 
 .notification-preview-list li.is-read .notification-title {
@@ -667,6 +700,35 @@
   font-size: 0.84rem;
 }
 
+.notification-read-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.notification-table-icon-action {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.notification-table-icon-action svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+.notification-table-icon-action:hover {
+  color: #374151;
+}
+
 .notifications-table tr.is-unread td {
   background-color: #f9fbff;
 }
@@ -684,6 +746,10 @@
 .theme-dark .app-header {
   background-color: #191d23;
   border-bottom-color: #2a313b;
+}
+
+.theme-dark .app-brand {
+  color: #e4ebf5;
 }
 
 .theme-dark .welcome-title {
@@ -815,6 +881,14 @@
 
 .theme-dark .notification-table-read {
   color: #b8c2d0;
+}
+
+.theme-dark .notification-table-icon-action {
+  color: #b8c2d0;
+}
+
+.theme-dark .notification-table-icon-action:hover {
+  color: #e2e8f0;
 }
 
 .theme-dark .settings-panel {

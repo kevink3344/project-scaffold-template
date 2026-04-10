@@ -48,6 +48,17 @@ export function markNotificationAsRead(notificationId: number): NotificationReco
   return updatedNotifications
 }
 
+export function markNotificationAsUnread(notificationId: number): NotificationRecord[] {
+  const updatedNotifications = readCache().map(notification => (
+    notification.id === notificationId
+      ? { ...notification, is_read: false }
+      : notification
+  ))
+
+  writeCache(updatedNotifications)
+  return updatedNotifications
+}
+
 export function markAllNotificationsAsRead(): NotificationRecord[] {
   const updatedNotifications = readCache().map(notification => ({
     ...notification,

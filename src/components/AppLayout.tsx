@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { GoogleOAuthProvider, GoogleLogin, googleLogout, type CredentialResponse } from '@react-oauth/google'
-import { Bell, Moon, Settings, Sun } from 'lucide-react'
+import { Bell, LayoutDashboard, Moon, Settings, Sun } from 'lucide-react'
 import { Link, Outlet } from 'react-router-dom'
 import { clearAuthToken, setAuthToken } from '../services/api/client'
 import type { NotificationRecord } from '../services/api/exampleApi'
@@ -96,9 +96,10 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
   return (
     <GoogleOAuthProvider clientId={googleClientId}>
       <header className="app-header">
-        <div className="api-test-control">
-          <Link to="/api-playground" className="btn">API Playground</Link>
-        </div>
+        <Link to="/" className="app-brand" aria-label="Go to Home">
+          <LayoutDashboard aria-hidden="true" />
+          <span>Project Scaffold</span>
+        </Link>
         <div className="auth-section">
           <div className="header-controls">
             <Link
