@@ -1,20 +1,14 @@
 import { useEffect, useState } from 'react'
-import { GoogleOAuthProvider, GoogleLogin, googleLogout, type CredentialResponse } from '@react-oauth/google'
 import { Bell, LayoutDashboard, Moon, Settings, Sun } from 'lucide-react'
 import { Link, Outlet } from 'react-router-dom'
-import { clearAuthToken, setAuthToken } from '../services/api/client'
+import { setAuthToken, clearAuthToken } from '../services/api/client'
+import { login as oidcLogin, logout as oidcLogout, getStoredUser, getAccessToken, type OidcUser } from '../services/auth'
 import type { NotificationRecord } from '../services/api/exampleApi'
 import {
   getCachedNotifications,
   loadNotificationsFeed,
   markNotificationAsRead,
 } from '../services/api/notificationsStore'
-
-interface GoogleUser {
-  name: string
-  email: string
-  picture: string
-}
 
 type ThemeMode = 'light' | 'dark'
 
@@ -23,21 +17,8 @@ interface AppLayoutProps {
   onToggleThemeMode: () => void
 }
 
-function parseJwt(token: string): GoogleUser {
-  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
-  const json = decodeURIComponent(
-    atob(base64)
-      .split('')
-      .map(c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
-      .join('')
-  )
-  return JSON.parse(json) as GoogleUser
-}
-
 export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutProps) {
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
-
-  const [user, setUser] = useState<GoogleUser | null>(null)
+  const [user, setUser] = useState<OidcUser | null>(() => getStoredUser())
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [notifications, setNotifications] = useState<NotificationRecord[]>([])
   const [notificationsError, setNotificationsError] = useState('')
@@ -48,18 +29,17 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
   const unreadCount = notifications.filter(item => !item.is_read).length
 
   useEffect(() => {
+    const token = getAccessToken()
+    if (token) setAuthToken(token)
     setNotifications(getCachedNotifications())
   }, [])
 
-  function handleLoginSuccess(response: CredentialResponse) {
-    if (response.credential) {
-      setAuthToken(response.credential)
-      setUser(parseJwt(response.credential))
-    }
+  function handleLogin() {
+    oidcLogin()
   }
 
   function handleLogout() {
-    googleLogout()
+    oidcLogout()
     clearAuthToken()
     setUser(null)
   }
@@ -94,7 +74,7 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
   }
 
   return (
-    <GoogleOAuthProvider clientId={googleClientId}>
+    <>
       <header className="app-header">
         <Link to="/" className="app-brand" aria-label="Go to Home">
           <LayoutDashboard aria-hidden="true" />
@@ -171,7 +151,6 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
 
           {user ? (
             <div className="user-info">
-              <img src={user.picture} alt={user.name} className="user-avatar" referrerPolicy="no-referrer" />
               <div className="user-details">
                 <span className="user-name">{user.name}</span>
                 <span className="user-email">{user.email}</span>
@@ -180,27 +159,15 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
             </div>
           ) : (
             <div className="login-section">
-              {googleClientId ? (
-                <GoogleLogin
-                  onSuccess={handleLoginSuccess}
-                  onError={() => console.error('Google login failed')}
-                  text="signin_with"
-                  shape="rectangular"
-                  theme={isDarkMode ? 'filled_black' : 'outline'}
-                  size="large"
-                />
-              ) : (
-                <div className="login-placeholder">
-                  <span>Google Client ID not configured</span>
-                  <small>Set VITE_GOOGLE_CLIENT_ID in .env</small>
-                </div>
-              )}
+              <button className="btn" onClick={handleLogin}>
+                Sign in with Rapid Identity
+              </button>
             </div>
           )}
         </div>
       </header>
 
       <Outlet />
-    </GoogleOAuthProvider>
+    </>
   )
 }
