@@ -10,6 +10,16 @@ export default function AuthCallbackPage() {
     const params = new URLSearchParams(window.location.search)
     const code = params.get('code')
     const state = params.get('state')
+    const isAppServiceCallback = window.location.pathname.startsWith('/.auth/login/')
+
+    if (isAppServiceCallback) {
+      const redirectTarget = state?.startsWith('redir=')
+        ? decodeURIComponent(state.slice('redir='.length))
+        : `${window.location.origin}/`
+
+      window.location.replace(redirectTarget)
+      return
+    }
 
     if (!code || !state) {
       setError('Missing authorization code or state.')

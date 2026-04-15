@@ -35,6 +35,7 @@ function App() {
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/.auth/login/:provider/callback" element={<AuthCallbackPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
