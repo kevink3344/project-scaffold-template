@@ -144,6 +144,11 @@ const server = http.createServer(async (req, res) => {
 
   const url = new URL(req.url, 'http://localhost')
 
+  if (url.pathname === '/api/health') {
+    sendJson(res, 200, { status: 'ok' })
+    return
+  }
+
   if (url.pathname === '/api/auth/profile') {
     const profile = buildProfileFromHeaders(req.headers)
     sendJson(res, 200, profile)

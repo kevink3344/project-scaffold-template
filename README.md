@@ -71,3 +71,12 @@ export default defineConfig([
   },
 ])
 ```
+
+## App Service Authentication Profile Endpoint
+
+Production deployment runs a small Node server (`server.js`) behind Azure App Service.
+
+- `GET /api/auth/profile`: reads EasyAuth headers (`x-ms-client-principal*`) server-side and returns a normalized user profile payload for the frontend.
+- `GET /api/health`: lightweight health check endpoint.
+
+This avoids relying on `/.auth/me` from the browser in environments where that route is rewritten by SPA routing.

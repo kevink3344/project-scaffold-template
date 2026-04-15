@@ -4,7 +4,6 @@ const OIDC_REDIRECT_URI = import.meta.env.VITE_OIDC_REDIRECT_URI || `${window.lo
 const AUTH_ENDPOINT = 'https://stargate.wcpss.net/idp/profile/oidc/auth'
 const TOKEN_ENDPOINT = 'https://stargate.wcpss.net/idp/profile/oidc/token'
 const USERINFO_ENDPOINT = 'https://stargate.wcpss.net/idp/profile/oidc/userinfo'
-const APP_SERVICE_ME_ENDPOINT = '/.auth/me'
 const APP_SERVICE_LOGOUT_ENDPOINT = '/.auth/logout'
 const APP_SERVICE_PROFILE_ENDPOINT = '/api/auth/profile'
 const APP_SERVICE_SIGNED_IN_ROUTE = '/auth/signed-in'
@@ -32,33 +31,6 @@ export function markSessionAuthenticated(): void {
 
 function hasSessionHint(): boolean {
   return localStorage.getItem(STORAGE_KEYS.sessionHint) === 'true'
-}
-
-interface PlatformClaim {
-  typ?: string
-  val?: string
-  type?: string
-  value?: string
-}
-
-interface PlatformAuthRecord {
-  user_id?: string
-  userDetails?: string
-  user_claims?: PlatformClaim[]
-}
-
-interface ClientPrincipalPayload {
-  userId?: string
-  userDetails?: string
-  claims?: PlatformClaim[]
-}
-
-interface AppServiceMeObjectPayload {
-  clientPrincipal?: ClientPrincipalPayload
-  user_id?: string
-  userDetails?: string
-  user_claims?: PlatformClaim[]
-  claims?: PlatformClaim[]
 }
 
 interface ServerProfilePayload {
@@ -177,73 +149,6 @@ export function getAccessToken(): string | null {
   return localStorage.getItem(STORAGE_KEYS.accessToken)
 }
 
-function normalizeClaimType(claim: PlatformClaim): string {
-  return (claim.typ || claim.type || '').toLowerCase()
-}
-
-function normalizeClaimValue(claim: PlatformClaim): string {
-  return claim.val || claim.value || ''
-}
-
-function getClaimValue(claims: PlatformClaim[] | undefined, keys: string[]): string {
-  if (!claims?.length) return ''
-
-  const normalizedKeys = keys.map(key => key.toLowerCase())
-  const exact = claims.find(claim => normalizedKeys.includes(normalizeClaimType(claim)))
-  if (exact) return normalizeClaimValue(exact)
-
-  const suffix = claims.find(claim => {
-    const claimType = normalizeClaimType(claim)
-    return normalizedKeys.some(key => claimType.endsWith(`/${key}`))
-  })
-
-  return suffix ? normalizeClaimValue(suffix) : ''
-}
-
-function getPrimaryAuthRecord(payload: unknown): PlatformAuthRecord | null {
-  if (Array.isArray(payload) && payload.length > 0 && typeof payload[0] === 'object' && payload[0] !== null) {
-    return payload[0] as PlatformAuthRecord
-  }
-
-  if (typeof payload === 'object' && payload !== null) {
-    const objectPayload = payload as AppServiceMeObjectPayload
-    if (objectPayload.clientPrincipal) {
-      return {
-        user_id: objectPayload.clientPrincipal.userId,
-        userDetails: objectPayload.clientPrincipal.userDetails,
-        user_claims: objectPayload.clientPrincipal.claims,
-      }
-    }
-
-    if (objectPayload.user_claims || objectPayload.claims) {
-      return {
-        user_id: objectPayload.user_id,
-        userDetails: objectPayload.userDetails,
-        user_claims: objectPayload.user_claims || objectPayload.claims,
-      }
-    }
-  }
-
-  return null
-}
-
-function normalizePlatformUser(record: PlatformAuthRecord): OidcUser | null {
-  const claims = record.user_claims
-  const email = getClaimValue(claims, ['email', 'preferred_username', 'upn', 'nameidentifier', 'emailaddress']) || record.userDetails || ''
-  const givenName = getClaimValue(claims, ['given_name', 'givenname'])
-  const familyName = getClaimValue(claims, ['family_name', 'surname'])
-  const sub = getClaimValue(claims, ['sub', 'nameidentifier']) || record.user_id || email || 'authenticated-user'
-  const displayName = getClaimValue(claims, ['name']) || [givenName, familyName].filter(Boolean).join(' ') || record.userDetails || email || sub
-
-  return {
-    sub,
-    name: displayName,
-    given_name: givenName,
-    family_name: familyName,
-    email,
-  }
-}
-
 function normalizeServerProfileUser(user: Partial<OidcUser> | undefined): OidcUser {
   const givenName = user?.given_name || ''
   const familyName = user?.family_name || ''
@@ -281,21 +186,6 @@ export async function getSessionUser(): Promise<OidcUser | null> {
       localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(serverUser))
       return serverUser
     }
-
-    try {
-      const response = await fetch(APP_SERVICE_ME_ENDPOINT, { credentials: 'include' })
-      if (response.ok) {
-        const payload = await response.json() as unknown
-        const authRecord = getPrimaryAuthRecord(payload)
-        if (authRecord) {
-          const platformUser = normalizePlatformUser(authRecord)
-          localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(platformUser))
-          return platformUser
-        }
-      }
-    } catch {
-      // Fall through to local storage / OIDC fallback.
-    }
   }
 
   const storedUser = getStoredUser()
@@ -311,21 +201,7 @@ export async function getSessionUser(): Promise<OidcUser | null> {
     }
   }
 
-  try {
-    const response = await fetch(APP_SERVICE_ME_ENDPOINT, { credentials: 'include' })
-    if (!response.ok) return null
-
-    const payload = await response.json() as unknown
-    const authRecord = getPrimaryAuthRecord(payload)
-    if (!authRecord) return null
-
-    const user = normalizePlatformUser(authRecord)
-
-    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user))
-    return user
-  } catch {
-    return null
-  }
+  return null
 }
 
 export function logout(): void {
