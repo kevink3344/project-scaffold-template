@@ -11,6 +11,13 @@ export default function AuthCallbackPage() {
     const code = params.get('code')
     const state = params.get('state')
     const isAppServiceCallback = window.location.pathname.startsWith('/.auth/login/')
+    const isSignedInLanding = window.location.pathname === '/auth/signed-in'
+
+    if (isSignedInLanding) {
+      markSessionAuthenticated()
+      navigate('/', { replace: true })
+      return
+    }
 
     if (isAppServiceCallback) {
       markSessionAuthenticated()

@@ -6,6 +6,7 @@ const TOKEN_ENDPOINT = 'https://stargate.wcpss.net/idp/profile/oidc/token'
 const USERINFO_ENDPOINT = 'https://stargate.wcpss.net/idp/profile/oidc/userinfo'
 const APP_SERVICE_ME_ENDPOINT = '/.auth/me'
 const APP_SERVICE_LOGOUT_ENDPOINT = '/.auth/logout'
+const APP_SERVICE_SIGNED_IN_ROUTE = '/auth/signed-in'
 
 const STORAGE_KEYS = {
   accessToken: 'oidc_access_token',
@@ -83,7 +84,7 @@ function isAppServiceAuthConfigured(): boolean {
 export async function login(): Promise<void> {
   if (isAppServiceAuthConfigured()) {
     const provider = getAppServiceProviderName()
-    const redirectTarget = encodeURIComponent(`${window.location.origin}/`)
+    const redirectTarget = encodeURIComponent(`${window.location.origin}${APP_SERVICE_SIGNED_IN_ROUTE}`)
     window.location.href = `/.auth/login/${provider}?post_login_redirect_uri=${redirectTarget}`
     return
   }
