@@ -4,6 +4,8 @@ const OIDC_REDIRECT_URI = import.meta.env.VITE_OIDC_REDIRECT_URI || `${window.lo
 const AUTH_ENDPOINT = 'https://stargate.wcpss.net/idp/profile/oidc/auth'
 const TOKEN_ENDPOINT = 'https://stargate.wcpss.net/idp/profile/oidc/token'
 const USERINFO_ENDPOINT = 'https://stargate.wcpss.net/idp/profile/oidc/userinfo'
+const APP_SERVICE_ME_ENDPOINT = '/.auth/me'
+const APP_SERVICE_LOGOUT_ENDPOINT = '/.auth/logout'
 
 const STORAGE_KEYS = {
   accessToken: 'oidc_access_token',
@@ -48,7 +50,23 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
     .replace(/=+$/, '')
 }
 
+function getAppServiceProviderName(): string {
+  const redirectMatch = OIDC_REDIRECT_URI.match(/\/\.auth\/login\/([^/]+)\//)
+  return redirectMatch?.[1] || 'Rapid_ID_Provider'
+}
+
+function isAppServiceAuthConfigured(): boolean {
+  return OIDC_REDIRECT_URI.includes('/.auth/login/') || window.location.hostname.endsWith('.azurewebsites.net')
+}
+
 export async function login(): Promise<void> {
+  if (isAppServiceAuthConfigured()) {
+    const provider = getAppServiceProviderName()
+    const redirectTarget = encodeURIComponent(`${window.location.origin}/`)
+    window.location.href = `/.auth/login/${provider}?post_login_redirect_uri=${redirectTarget}`
+    return
+  }
+
   const codeVerifier = generateRandomString(64)
   const state = generateRandomString(32)
   const codeChallenge = await generateCodeChallenge(codeVerifier)
@@ -151,11 +169,29 @@ function normalizePlatformUser(record: PlatformAuthRecord): OidcUser | null {
 }
 
 export async function getSessionUser(): Promise<OidcUser | null> {
+  if (isAppServiceAuthConfigured()) {
+    try {
+      const response = await fetch(APP_SERVICE_ME_ENDPOINT, { credentials: 'include' })
+      if (response.ok) {
+        const payload = await response.json() as PlatformAuthRecord[]
+        if (Array.isArray(payload) && payload.length > 0) {
+          const platformUser = normalizePlatformUser(payload[0])
+          if (platformUser) {
+            localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(platformUser))
+            return platformUser
+          }
+        }
+      }
+    } catch {
+      // Fall through to local storage / OIDC fallback.
+    }
+  }
+
   const storedUser = getStoredUser()
   if (storedUser) return storedUser
 
   try {
-    const response = await fetch('/.auth/me', { credentials: 'include' })
+    const response = await fetch(APP_SERVICE_ME_ENDPOINT, { credentials: 'include' })
     if (!response.ok) return null
 
     const payload = await response.json() as PlatformAuthRecord[]
@@ -175,4 +211,9 @@ export function logout(): void {
   localStorage.removeItem(STORAGE_KEYS.accessToken)
   localStorage.removeItem(STORAGE_KEYS.idToken)
   localStorage.removeItem(STORAGE_KEYS.user)
+
+  if (isAppServiceAuthConfigured()) {
+    const redirectTarget = encodeURIComponent(`${window.location.origin}/`)
+    window.location.href = `${APP_SERVICE_LOGOUT_ENDPOINT}?post_logout_redirect_uri=${redirectTarget}`
+  }
 }
