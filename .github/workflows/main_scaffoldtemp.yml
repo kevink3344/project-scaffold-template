@@ -79,7 +79,7 @@ jobs:
           slot-name: 'Production'
           package: release.zip
           clean: true
-          startup-command: 'node /home/site/wwwroot/server.js'
+          startup-command: 'node --experimental-sqlite /home/site/wwwroot/server.js'
 
       - name: Restart App Service
         shell: bash
