@@ -522,6 +522,17 @@
   min-width: 150px;
 }
 
+.build-version {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: #6b7280;
+  font-family: 'Courier New', monospace;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  background-color: #ffffff;
+}
+
 /* API Playground */
 .playground-page {
   min-height: 100vh;

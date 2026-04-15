@@ -22,6 +22,8 @@ export default function HomePage() {
   const dbName = import.meta.env.VITE_DB_NAME || ''
   const sqliteFile = import.meta.env.VITE_SQLITE_FILE || './local-data/app.sqlite3'
   const sqliteMode = import.meta.env.VITE_SQLITE_MODE || 'WAL'
+  const rawBuildVersion = import.meta.env.VITE_APP_VERSION || 'local'
+  const buildVersion = rawBuildVersion.length > 10 ? rawBuildVersion.slice(0, 10) : rawBuildVersion
   const isConnected = Boolean(dbServer && dbName)
   const isLocalReady = Boolean(sqliteFile)
 
@@ -208,6 +210,10 @@ export default function HomePage() {
             </div>
           </>
         )}
+
+        <div className="build-version" title={`Build ${rawBuildVersion}`}>
+          Build: {buildVersion}
+        </div>
       </footer>
     </div>
   )

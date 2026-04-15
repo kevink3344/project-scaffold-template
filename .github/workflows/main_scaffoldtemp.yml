@@ -32,6 +32,7 @@ jobs:
           VITE_DB_SERVER: ${{ secrets.VITE_DB_SERVER }}
           VITE_DB_NAME: ${{ secrets.VITE_DB_NAME }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_APP_VERSION: ${{ github.sha }}
         run: |
           npm install
           npm run build --if-present
