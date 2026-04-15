@@ -54,6 +54,10 @@ interface ClientPrincipalPayload {
 
 interface AppServiceMeObjectPayload {
   clientPrincipal?: ClientPrincipalPayload
+  user_id?: string
+  userDetails?: string
+  user_claims?: PlatformClaim[]
+  claims?: PlatformClaim[]
 }
 
 function generateRandomString(length: number): string {
@@ -202,6 +206,14 @@ function getPrimaryAuthRecord(payload: unknown): PlatformAuthRecord | null {
         user_id: objectPayload.clientPrincipal.userId,
         userDetails: objectPayload.clientPrincipal.userDetails,
         user_claims: objectPayload.clientPrincipal.claims,
+      }
+    }
+
+    if (objectPayload.user_claims || objectPayload.claims) {
+      return {
+        user_id: objectPayload.user_id,
+        userDetails: objectPayload.userDetails,
+        user_claims: objectPayload.user_claims || objectPayload.claims,
       }
     }
   }
