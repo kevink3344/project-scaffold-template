@@ -29,6 +29,20 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
   const isDarkMode = themeMode === 'dark'
   const notificationsPreview = notifications.slice(0, 3)
   const unreadCount = notifications.filter(item => !item.is_read).length
+  const hasUserProfileClaims = Boolean(
+    user && (
+      (user.email && user.email !== 'authenticated-user')
+      || user.given_name
+      || user.family_name
+      || (user.name && user.name !== 'authenticated-user')
+    ),
+  )
+  const userDisplayName = user
+    ? (hasUserProfileClaims ? user.name : 'Signed in user')
+    : ''
+  const userDisplayEmail = user
+    ? (hasUserProfileClaims && user.email ? user.email : 'Profile claims unavailable')
+    : ''
 
   useEffect(() => {
     const token = getAccessToken()
@@ -196,8 +210,8 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
               <button
                 type="button"
                 className="icon-btn user-profile-btn"
-                aria-label={`Signed in as ${user.name}`}
-                title={user.email || user.name}
+                aria-label={`Signed in as ${userDisplayName}`}
+                title={userDisplayEmail || userDisplayName}
                 aria-haspopup="menu"
                 aria-expanded={isProfileMenuOpen}
                 onClick={handleProfileMenuToggle}
@@ -207,8 +221,8 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
 
               {isProfileMenuOpen && (
                 <div className="profile-menu" role="menu" aria-label="Profile menu">
-                  <p className="profile-menu-name">{user.name}</p>
-                  {user.email && <p className="profile-menu-email">{user.email}</p>}
+                  <p className="profile-menu-name">{userDisplayName}</p>
+                  <p className="profile-menu-email">{userDisplayEmail}</p>
                   <button type="button" className="btn btn-secondary profile-menu-signout" onClick={handleLogout}>
                     Sign Out
                   </button>

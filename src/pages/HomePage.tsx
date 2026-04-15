@@ -34,6 +34,17 @@ export default function HomePage() {
   const [location, setLocation] = useState<{ latitude: number, longitude: number } | null>(null)
   const [address, setAddress] = useState('')
   const [user, setUser] = useState<OidcUser | null>(null)
+  const hasUserProfileClaims = Boolean(
+    user && (
+      (user.email && user.email !== 'authenticated-user')
+      || user.given_name
+      || user.family_name
+      || (user.name && user.name !== 'authenticated-user')
+    ),
+  )
+  const welcomeName = user
+    ? (hasUserProfileClaims ? user.name : 'Signed in user')
+    : ''
 
   useEffect(() => {
     let isMounted = true
@@ -116,7 +127,7 @@ export default function HomePage() {
     <div className="app-container">
       <main className="welcome-container">
         <div className="welcome-content">
-          <h1 className="welcome-title">{user?.name ? `Welcome, ${user.name}` : 'Welcome'}</h1>
+          <h1 className="welcome-title">{welcomeName ? `Welcome, ${welcomeName}` : 'Welcome'}</h1>
           <button
             type="button"
             className="btn btn-secondary"
