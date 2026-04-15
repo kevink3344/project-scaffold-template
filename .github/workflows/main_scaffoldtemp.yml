@@ -57,7 +57,11 @@ jobs:
       - name: Create release package from dist
         run: |
           rm -f release.zip
-          cd dist
+          rm -rf release
+          mkdir -p release
+          cp -R dist release/dist
+          cp server.js release/server.js
+          cd release
           zip -r ../release.zip .
 
       - name: Login to Azure
@@ -75,7 +79,7 @@ jobs:
           slot-name: 'Production'
           package: release.zip
           clean: true
-          startup-command: 'pm2 serve /home/site/wwwroot --no-daemon --spa'
+          startup-command: 'node /home/site/wwwroot/server.js'
 
       - name: Restart App Service
         shell: bash

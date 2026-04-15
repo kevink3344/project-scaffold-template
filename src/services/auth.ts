@@ -6,6 +6,7 @@ const TOKEN_ENDPOINT = 'https://stargate.wcpss.net/idp/profile/oidc/token'
 const USERINFO_ENDPOINT = 'https://stargate.wcpss.net/idp/profile/oidc/userinfo'
 const APP_SERVICE_ME_ENDPOINT = '/.auth/me'
 const APP_SERVICE_LOGOUT_ENDPOINT = '/.auth/logout'
+const APP_SERVICE_PROFILE_ENDPOINT = '/api/auth/profile'
 const APP_SERVICE_SIGNED_IN_ROUTE = '/auth/signed-in'
 
 const STORAGE_KEYS = {
@@ -58,6 +59,11 @@ interface AppServiceMeObjectPayload {
   userDetails?: string
   user_claims?: PlatformClaim[]
   claims?: PlatformClaim[]
+}
+
+interface ServerProfilePayload {
+  authenticated: boolean
+  user?: Partial<OidcUser>
 }
 
 function generateRandomString(length: number): string {
@@ -238,8 +244,44 @@ function normalizePlatformUser(record: PlatformAuthRecord): OidcUser | null {
   }
 }
 
+function normalizeServerProfileUser(user: Partial<OidcUser> | undefined): OidcUser {
+  const givenName = user?.given_name || ''
+  const familyName = user?.family_name || ''
+  const email = user?.email || ''
+  const sub = user?.sub || email || 'authenticated-user'
+  const name = user?.name || [givenName, familyName].filter(Boolean).join(' ') || email || 'Signed in user'
+
+  return {
+    sub,
+    name,
+    given_name: givenName,
+    family_name: familyName,
+    email,
+  }
+}
+
+async function getServerSessionUser(): Promise<OidcUser | null> {
+  try {
+    const response = await fetch(APP_SERVICE_PROFILE_ENDPOINT, { credentials: 'include' })
+    if (!response.ok) return null
+
+    const payload = await response.json() as ServerProfilePayload
+    if (!payload.authenticated) return null
+
+    return normalizeServerProfileUser(payload.user)
+  } catch {
+    return null
+  }
+}
+
 export async function getSessionUser(): Promise<OidcUser | null> {
   if (isAppServiceAuthConfigured()) {
+    const serverUser = await getServerSessionUser()
+    if (serverUser) {
+      localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(serverUser))
+      return serverUser
+    }
+
     try {
       const response = await fetch(APP_SERVICE_ME_ENDPOINT, { credentials: 'include' })
       if (response.ok) {
