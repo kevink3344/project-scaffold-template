@@ -76,4 +76,15 @@ jobs:
           package: release.zip
           clean: true
           startup-command: 'pm2 serve /home/site/wwwroot --no-daemon --spa'
+
+      - name: Restart App Service
+        shell: bash
+        run: |
+          RG=$(az resource list --name scaffoldtemp --resource-type "Microsoft.Web/sites" --query "[0].resourceGroup" -o tsv)
+          if [ -z "$RG" ]; then
+            echo "Could not determine resource group for scaffoldtemp"
+            exit 1
+          fi
+
+          az webapp restart --name scaffoldtemp --resource-group "$RG"
           
