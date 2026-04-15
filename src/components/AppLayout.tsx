@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
-import { Bell, LayoutDashboard, Moon, Settings, Sun } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Bell, LayoutDashboard, Moon, Settings, Sun, UserRound } from 'lucide-react'
 import { Link, Outlet } from 'react-router-dom'
 import { setAuthToken, clearAuthToken } from '../services/api/client'
-import { login as oidcLogin, logout as oidcLogout, getStoredUser, getAccessToken, type OidcUser } from '../services/auth'
+import { login as oidcLogin, logout as oidcLogout, getStoredUser, getSessionUser, getAccessToken, type OidcUser } from '../services/auth'
 import type { NotificationRecord } from '../services/api/exampleApi'
 import {
   getCachedNotifications,
@@ -20,9 +20,11 @@ interface AppLayoutProps {
 export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutProps) {
   const [user, setUser] = useState<OidcUser | null>(() => getStoredUser())
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [notifications, setNotifications] = useState<NotificationRecord[]>([])
   const [notificationsError, setNotificationsError] = useState('')
   const [isNotificationsLoading, setIsNotificationsLoading] = useState(false)
+  const profileMenuRef = useRef<HTMLDivElement | null>(null)
 
   const isDarkMode = themeMode === 'dark'
   const notificationsPreview = notifications.slice(0, 3)
@@ -32,7 +34,42 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
     const token = getAccessToken()
     if (token) setAuthToken(token)
     setNotifications(getCachedNotifications())
+
+    let isMounted = true
+    getSessionUser().then(sessionUser => {
+      if (isMounted && sessionUser) {
+        setUser(sessionUser)
+      }
+    })
+
+    return () => {
+      isMounted = false
+    }
   }, [])
+
+  useEffect(() => {
+    if (!isProfileMenuOpen) return
+
+    function handleDocumentClick(event: MouseEvent) {
+      if (!profileMenuRef.current?.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false)
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsProfileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleDocumentClick)
+    document.addEventListener('keydown', handleEscape)
+
+    return () => {
+      document.removeEventListener('mousedown', handleDocumentClick)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isProfileMenuOpen])
 
   function handleLogin() {
     oidcLogin()
@@ -42,6 +79,11 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
     oidcLogout()
     clearAuthToken()
     setUser(null)
+    setIsProfileMenuOpen(false)
+  }
+
+  function handleProfileMenuToggle() {
+    setIsProfileMenuOpen(prev => !prev)
   }
 
   async function loadNotifications() {
@@ -150,12 +192,28 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
           </div>
 
           {user ? (
-            <div className="user-info">
-              <div className="user-details">
-                <span className="user-name">{user.name}</span>
-                <span className="user-email">{user.email}</span>
-              </div>
-              <button className="btn btn-secondary" onClick={handleLogout}>Sign Out</button>
+            <div className="user-info" ref={profileMenuRef}>
+              <button
+                type="button"
+                className="icon-btn user-profile-btn"
+                aria-label={`Signed in as ${user.name}`}
+                title={user.email || user.name}
+                aria-haspopup="menu"
+                aria-expanded={isProfileMenuOpen}
+                onClick={handleProfileMenuToggle}
+              >
+                <UserRound aria-hidden="true" />
+              </button>
+
+              {isProfileMenuOpen && (
+                <div className="profile-menu" role="menu" aria-label="Profile menu">
+                  <p className="profile-menu-name">{user.name}</p>
+                  {user.email && <p className="profile-menu-email">{user.email}</p>}
+                  <button type="button" className="btn btn-secondary profile-menu-signout" onClick={handleLogout}>
+                    Sign Out
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="login-section">

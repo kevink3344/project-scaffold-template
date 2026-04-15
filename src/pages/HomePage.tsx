@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { MapPin } from 'lucide-react'
+import { getSessionUser, type OidcUser } from '../services/auth'
 
 type StorageMode = 'cloud' | 'local'
 
@@ -30,6 +31,21 @@ export default function HomePage() {
   const [locationError, setLocationError] = useState('')
   const [location, setLocation] = useState<{ latitude: number, longitude: number } | null>(null)
   const [address, setAddress] = useState('')
+  const [user, setUser] = useState<OidcUser | null>(null)
+
+  useEffect(() => {
+    let isMounted = true
+
+    getSessionUser().then(sessionUser => {
+      if (isMounted) {
+        setUser(sessionUser)
+      }
+    })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   async function reverseGeocode(latitude: number, longitude: number) {
     setIsAddressLoading(true)
@@ -98,7 +114,7 @@ export default function HomePage() {
     <div className="app-container">
       <main className="welcome-container">
         <div className="welcome-content">
-          <h1 className="welcome-title">Welcome</h1>
+          <h1 className="welcome-title">{user?.name ? `Welcome, ${user.name}` : 'Welcome'}</h1>
           <button
             type="button"
             className="btn btn-secondary"

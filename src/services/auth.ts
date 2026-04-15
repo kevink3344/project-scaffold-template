@@ -21,6 +21,17 @@ export interface OidcUser {
   email: string
 }
 
+interface PlatformClaim {
+  typ?: string
+  val?: string
+}
+
+interface PlatformAuthRecord {
+  user_id?: string
+  userDetails?: string
+  user_claims?: PlatformClaim[]
+}
+
 function generateRandomString(length: number): string {
   const array = new Uint8Array(length)
   crypto.getRandomValues(array)
@@ -114,6 +125,50 @@ export function getStoredUser(): OidcUser | null {
 
 export function getAccessToken(): string | null {
   return localStorage.getItem(STORAGE_KEYS.accessToken)
+}
+
+function getClaimValue(claims: PlatformClaim[] | undefined, key: string): string {
+  return claims?.find(claim => claim.typ?.toLowerCase() === key.toLowerCase())?.val || ''
+}
+
+function normalizePlatformUser(record: PlatformAuthRecord): OidcUser | null {
+  const claims = record.user_claims
+  const email = getClaimValue(claims, 'email') || getClaimValue(claims, 'preferred_username') || record.userDetails || ''
+  const givenName = getClaimValue(claims, 'given_name')
+  const familyName = getClaimValue(claims, 'family_name')
+  const displayName = getClaimValue(claims, 'name') || [givenName, familyName].filter(Boolean).join(' ') || record.userDetails || email
+  const sub = getClaimValue(claims, 'sub') || record.user_id || email
+
+  if (!displayName) return null
+
+  return {
+    sub,
+    name: displayName,
+    given_name: givenName,
+    family_name: familyName,
+    email,
+  }
+}
+
+export async function getSessionUser(): Promise<OidcUser | null> {
+  const storedUser = getStoredUser()
+  if (storedUser) return storedUser
+
+  try {
+    const response = await fetch('/.auth/me', { credentials: 'include' })
+    if (!response.ok) return null
+
+    const payload = await response.json() as PlatformAuthRecord[]
+    if (!Array.isArray(payload) || payload.length === 0) return null
+
+    const user = normalizePlatformUser(payload[0])
+    if (!user) return null
+
+    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user))
+    return user
+  } catch {
+    return null
+  }
 }
 
 export function logout(): void {
