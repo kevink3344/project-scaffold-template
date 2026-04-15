@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
   accessToken: 'oidc_access_token',
   idToken: 'oidc_id_token',
   user: 'oidc_user',
+  sessionHint: 'oidc_session_hint',
   codeVerifier: 'oidc_code_verifier',
   state: 'oidc_state',
 }
@@ -21,6 +22,14 @@ export interface OidcUser {
   given_name: string
   family_name: string
   email: string
+}
+
+export function markSessionAuthenticated(): void {
+  localStorage.setItem(STORAGE_KEYS.sessionHint, 'true')
+}
+
+function hasSessionHint(): boolean {
+  return localStorage.getItem(STORAGE_KEYS.sessionHint) === 'true'
 }
 
 interface PlatformClaim {
@@ -237,6 +246,16 @@ export async function getSessionUser(): Promise<OidcUser | null> {
   const storedUser = getStoredUser()
   if (storedUser) return storedUser
 
+  if (hasSessionHint()) {
+    return {
+      sub: 'authenticated-user',
+      name: 'Signed in user',
+      given_name: '',
+      family_name: '',
+      email: '',
+    }
+  }
+
   try {
     const response = await fetch(APP_SERVICE_ME_ENDPOINT, { credentials: 'include' })
     if (!response.ok) return null
@@ -258,6 +277,7 @@ export function logout(): void {
   localStorage.removeItem(STORAGE_KEYS.accessToken)
   localStorage.removeItem(STORAGE_KEYS.idToken)
   localStorage.removeItem(STORAGE_KEYS.user)
+  localStorage.removeItem(STORAGE_KEYS.sessionHint)
 
   if (isAppServiceAuthConfigured()) {
     const redirectTarget = encodeURIComponent(`${window.location.origin}/`)

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { handleCallback } from '../services/auth'
+import { handleCallback, markSessionAuthenticated } from '../services/auth'
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
@@ -13,6 +13,8 @@ export default function AuthCallbackPage() {
     const isAppServiceCallback = window.location.pathname.startsWith('/.auth/login/')
 
     if (isAppServiceCallback) {
+      markSessionAuthenticated()
+
       const redirectTarget = state?.startsWith('redir=')
         ? decodeURIComponent(state.slice('redir='.length))
         : `${window.location.origin}/`
