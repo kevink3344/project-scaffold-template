@@ -87,6 +87,7 @@ jobs:
           package: release.zip
           clean: true
           startup-command: 'node --experimental-sqlite /home/site/wwwroot/server.js'
+          app-settings-json: '[{"name": "TURSO_DB_URL", "value": "${{ secrets.TURSO_DB_URL }}", "slotSetting": false}, {"name": "TURSO_DB_TOKEN", "value": "${{ secrets.TURSO_DB_TOKEN }}", "slotSetting": false}]'
 
       - name: Restart App Service
         shell: bash
