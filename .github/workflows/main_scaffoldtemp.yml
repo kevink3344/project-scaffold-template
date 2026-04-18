@@ -33,6 +33,8 @@ jobs:
           VITE_DB_SERVER: ${{ secrets.VITE_DB_SERVER }}
           VITE_DB_NAME: ${{ secrets.VITE_DB_NAME }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          TURSO_DB_URL: ${{ secrets.TURSO_DB_URL }}
+          TURSO_DB_TOKEN: ${{ secrets.TURSO_DB_TOKEN }}
           VITE_APP_VERSION: ${{ github.sha }}
         run: |
           npm install
@@ -54,13 +56,18 @@ jobs:
           echo "Built index signature:"
           sed -n '1,40p' dist/index.html
 
+      - name: Install production dependencies
+        run: npm ci --production
+
       - name: Create release package from dist
         run: |
           rm -f release.zip
           rm -rf release
           mkdir -p release
           cp -R dist release/dist
+          cp -R node_modules release/node_modules
           cp server.js release/server.js
+          cp package.json release/package.json
           cd release
           zip -r ../release.zip .
 
