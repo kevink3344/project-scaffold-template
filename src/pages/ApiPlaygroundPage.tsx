@@ -7,15 +7,17 @@ import {
   getOkExample,
   getTeamsExample,
   getUsersExample,
+  testWebhookExample,
   type NotificationRecord,
   type NotificationsResponse,
   type TeamRecord,
   type TeamsResponse,
   type UserRecord,
   type UsersResponse,
+  type WebhookTestResponse,
 } from '../services/api/exampleApi'
 
-type EndpointId = 'ok' | 'health' | 'users' | 'notifications' | 'teams'
+type EndpointId = 'ok' | 'health' | 'users' | 'notifications' | 'teams' | 'webhookTest'
 
 interface EndpointResult {
   isLoading: boolean
@@ -68,6 +70,13 @@ const endpointDefinitions: EndpointDefinition[] = [
     endpointPath: '/mock-api/notifications.json',
     run: getNotificationsExample,
   },
+  {
+    id: 'webhookTest',
+    title: 'Webhook Test',
+    description: 'Sends a test payload to the configured Power Automate webhook URL and reports the response.',
+    endpointPath: '/api/webhooks/test',
+    run: testWebhookExample,
+  },
 ]
 
 const initialResults: Record<EndpointId, EndpointResult> = {
@@ -76,6 +85,7 @@ const initialResults: Record<EndpointId, EndpointResult> = {
   users: { isLoading: false, data: '', error: '', response: null },
   teams: { isLoading: false, data: '', error: '', response: null },
   notifications: { isLoading: false, data: '', error: '', response: null },
+  webhookTest: { isLoading: false, data: '', error: '', response: null },
 }
 
 function getUsersFromResponse(response: unknown): UserRecord[] {
@@ -103,6 +113,11 @@ function getTeamsFromResponse(response: unknown): TeamRecord[] {
 
   const typedResponse = response as TeamsResponse
   return Array.isArray(typedResponse.teams) ? typedResponse.teams : []
+}
+
+function getWebhookResultFromResponse(response: unknown): WebhookTestResponse | null {
+  if (!response || typeof response !== 'object' || !('success' in response)) return null
+  return response as WebhookTestResponse
 }
 
 export default function ApiPlaygroundPage() {
@@ -156,6 +171,9 @@ export default function ApiPlaygroundPage() {
           const notifications = endpoint.id === 'notifications'
             ? getNotificationsFromResponse(endpointState.response)
             : []
+          const webhookResult = endpoint.id === 'webhookTest'
+            ? getWebhookResultFromResponse(endpointState.response)
+            : null
 
           return (
             <article className="playground-card" key={endpoint.id}>
@@ -254,6 +272,34 @@ export default function ApiPlaygroundPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {endpoint.id === 'webhookTest' && webhookResult && (
+                <div className={`playground-webhook-result ${webhookResult.success ? 'success' : 'failure'}`}>
+                  <p><strong>{webhookResult.success ? '✓' : '✗'} {webhookResult.message}</strong></p>
+                  {webhookResult.payload_sent && (
+                    <>
+                      <p><strong>Payload Sent</strong></p>
+                      <pre className="playground-result">{JSON.stringify(webhookResult.payload_sent, null, 2)}</pre>
+                    </>
+                  )}
+                  {webhookResult.pa_response != null && (
+                    <>
+                      <p><strong>Power Automate Response</strong></p>
+                      <pre className="playground-result">
+                        {typeof webhookResult.pa_response === 'string'
+                          ? webhookResult.pa_response
+                          : JSON.stringify(webhookResult.pa_response, null, 2)}
+                      </pre>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {endpoint.id === 'webhookTest' && !webhookResult && endpointState.data && (
+                <div className="playground-webhook-result failure">
+                  <p><strong>Unexpected response format. Showing raw response below.</strong></p>
                 </div>
               )}
 

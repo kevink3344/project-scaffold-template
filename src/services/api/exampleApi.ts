@@ -1,4 +1,4 @@
-import { get } from './client'
+import { get, post } from './client'
 
 export interface OkResponse {
   status: 'ok'
@@ -70,4 +70,22 @@ export async function getTeamsExample(): Promise<TeamsResponse> {
 export async function getNotificationsExample(): Promise<NotificationsResponse> {
   const mockUrl = new URL('/mock-api/notifications.json', window.location.origin).toString()
   return get<NotificationsResponse>(mockUrl, { skipAuth: true, skipRetry: true })
+}
+
+export interface WebhookTestResponse {
+  success: boolean
+  message: string
+  payload_sent?: {
+    sub: string
+    given_name: string
+    family_name: string
+    email: string
+    created_at: string
+  }
+  pa_response?: unknown
+}
+
+export async function testWebhookExample(): Promise<WebhookTestResponse> {
+  const url = new URL('/api/webhooks/test', window.location.origin).toString()
+  return post<WebhookTestResponse>(url, {}, { skipRetry: true })
 }
