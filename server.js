@@ -28,6 +28,7 @@ const db = createClient({
 })
 
 const DEFAULT_CATEGORIES = ['HR', 'Finance', 'Operations', 'Legal', 'Safety', 'Training']
+const ALLOWED_USER_ROLES = new Set(['admin', 'user', 'support', 'analyst', 'manager'])
 
 const SEEDED_DOCUMENTS = [
   {
@@ -1386,6 +1387,67 @@ const server = http.createServer(async (req, res) => {
     }
     sendJson(res, 200, { users })
     return
+  }
+
+  // Update user details
+  {
+    const match = url.pathname.match(/^\/api\/users\/([^/]+)$/)
+    if (match && req.method === 'PUT') {
+      const context = await getAuthenticatedRequestContext(req, cookies)
+      if (!context.authenticated || !context.user) {
+        sendJson(res, 401, { error: 'Authentication required' })
+        return
+      }
+
+      const requesterRole = String(context.user.role || 'user').toLowerCase()
+      if (requesterRole !== 'admin') {
+        sendJson(res, 403, { error: 'Admin role required' })
+        return
+      }
+
+      try {
+        const sub = decodeURIComponent(match[1])
+        const body = await readJsonBody(req)
+        const givenName = String(body.given_name || '').trim()
+        const familyName = String(body.family_name || '').trim()
+        const email = String(body.email || '').trim()
+        const role = String(body.role || 'user').trim().toLowerCase()
+
+        if (!ALLOWED_USER_ROLES.has(role)) {
+          sendJson(res, 400, { error: 'role must be one of: admin, user, support, analyst, manager' })
+          return
+        }
+
+        const exists = await db.execute({ sql: 'SELECT sub FROM users WHERE sub = ?', args: [sub] })
+        if (!exists.rows.length) {
+          sendJson(res, 404, { error: 'User not found' })
+          return
+        }
+
+        await db.execute({
+          sql: `UPDATE users
+                SET given_name = ?, family_name = ?, email = ?, role = ?
+                WHERE sub = ?`,
+          args: [givenName, familyName, email, role, sub],
+        })
+
+        const result = await db.execute({
+          sql: 'SELECT sub, given_name, family_name, email, role, created_at, last_login_at FROM users WHERE sub = ?',
+          args: [sub],
+        })
+        const user = rowToObj(result)
+
+        sendJson(res, 200, {
+          user: {
+            ...user,
+            categories: await getUserCategories(String(sub)),
+          },
+        })
+      } catch {
+        sendJson(res, 400, { error: 'Bad request' })
+      }
+      return
+    }
   }
 
   // Teams list

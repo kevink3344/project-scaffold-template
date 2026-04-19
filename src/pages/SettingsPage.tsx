@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { motion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { Link } from 'react-router-dom'
 import {
   defaultThemeConfig,
@@ -23,7 +23,21 @@ interface ApiUserRecord {
   family_name: string
   email: string
   role: string
+  created_at?: string
+  last_login_at?: string
+  categories?: string[]
 }
+
+type UserRole = 'admin' | 'user' | 'support' | 'analyst' | 'manager'
+
+interface EditableUserDraft {
+  given_name: string
+  family_name: string
+  email: string
+  role: UserRole
+}
+
+const ROLE_OPTIONS: UserRole[] = ['user', 'admin', 'support', 'analyst', 'manager']
 
 interface AuthProfilePayload {
   authenticated: boolean
@@ -60,12 +74,25 @@ function AccordionSection({ title, children, defaultOpen = false }: SectionProps
   )
 }
 
+function normalizeUserRole(roleValue: string | undefined): UserRole {
+  const normalized = String(roleValue || 'user').trim().toLowerCase()
+  if (normalized === 'admin') return 'admin'
+  if (normalized === 'support') return 'support'
+  if (normalized === 'analyst') return 'analyst'
+  if (normalized === 'manager') return 'manager'
+  return 'user'
+}
+
 export default function SettingsPage() {
   const [thresholds, setThresholds] = useState({ currentWithinDays: 365, reviewSoonWithinDays: 730 })
   const [themeConfig, setThemeConfigState] = useState<ThemeConfig>(defaultThemeConfig)
   const [users, setUsers] = useState<ApiUserRecord[]>([])
   const [usersLoading, setUsersLoading] = useState(true)
   const [usersError, setUsersError] = useState('')
+  const [selectedUser, setSelectedUser] = useState<ApiUserRecord | null>(null)
+  const [userDraft, setUserDraft] = useState<EditableUserDraft | null>(null)
+  const [userPanelError, setUserPanelError] = useState('')
+  const [savingUser, setSavingUser] = useState(false)
 
   const paletteRows = useMemo(() => [
     { key: 'appBg', label: 'Main App Background' },
@@ -156,6 +183,60 @@ export default function SettingsPage() {
     return user.sub
   }
 
+  function openUserPanel(user: ApiUserRecord) {
+    setSelectedUser(user)
+    setUserPanelError('')
+    setUserDraft({
+      given_name: user.given_name || '',
+      family_name: user.family_name || '',
+      email: user.email || '',
+      role: normalizeUserRole(user.role),
+    })
+  }
+
+  function closeUserPanel() {
+    setSelectedUser(null)
+    setUserDraft(null)
+    setUserPanelError('')
+    setSavingUser(false)
+  }
+
+  async function saveUser() {
+    if (!selectedUser || !userDraft) return
+    setUserPanelError('')
+    setSavingUser(true)
+    try {
+      const response = await fetch(`/api/users/${encodeURIComponent(selectedUser.sub)}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userDraft),
+      })
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null) as { error?: string } | null
+        throw new Error(payload?.error || `Failed to save user (${response.status})`)
+      }
+
+      const payload = await response.json() as { user?: ApiUserRecord }
+      if (!payload.user) throw new Error('Save succeeded but no user was returned')
+      const updatedUser = payload.user
+
+      setUsers(prev => prev.map(user => (user.sub === updatedUser.sub ? updatedUser : user)))
+      setSelectedUser(updatedUser)
+      setUserDraft({
+        given_name: updatedUser.given_name || '',
+        family_name: updatedUser.family_name || '',
+        email: updatedUser.email || '',
+        role: normalizeUserRole(updatedUser.role),
+      })
+    } catch (error) {
+      setUserPanelError(error instanceof Error ? error.message : 'Unable to save user')
+    } finally {
+      setSavingUser(false)
+    }
+  }
+
   async function saveThresholds() {
     await setFreshnessThresholds(thresholds)
     window.alert('Freshness thresholds saved.')
@@ -226,7 +307,11 @@ export default function SettingsPage() {
             </thead>
             <tbody>
               {users.map(user => (
-                <tr key={user.sub} className="border-b border-slate-100">
+                <tr
+                  key={user.sub}
+                  className="cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50"
+                  onClick={() => openUserPanel(user)}
+                >
                   <td className="px-3 py-2">{formatUserName(user)}</td>
                   <td className="px-3 py-2">{user.role}</td>
                   <td className="px-3 py-2">{user.email || '-'}</td>
@@ -241,6 +326,7 @@ export default function SettingsPage() {
             </tbody>
           </table>
         </div>
+        <p className="text-xs text-slate-500">Select a user row to open the editable details panel.</p>
       </AccordionSection>
 
       <AccordionSection title="Theme Palette (Light & Dark)">
@@ -264,6 +350,105 @@ export default function SettingsPage() {
           <button type="button" className="btn-lite" onClick={() => setThemeConfigState(defaultThemeConfig)}>Reset</button>
         </div>
       </AccordionSection>
+
+      <AnimatePresence>
+        {selectedUser && userDraft && (
+          <>
+            <motion.button
+              key="overlay"
+              type="button"
+              aria-label="Close user details panel"
+              className="fixed inset-0 z-40 bg-black/35"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={closeUserPanel}
+            />
+
+            <motion.aside
+              key="panel"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'tween', duration: 0.25 }}
+              className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-slate-300 bg-white"
+            >
+              <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+                <div>
+                  <h3 className="text-base font-semibold">User Details</h3>
+                  <p className="font-mono text-[11px] text-slate-500">{selectedUser.sub}</p>
+                </div>
+                <button type="button" className="btn-lite" onClick={closeUserPanel}>Close</button>
+              </div>
+
+              <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+                <label className="space-y-1 text-sm font-semibold">
+                  <span>First Name</span>
+                  <input
+                    type="text"
+                    className="input-shell"
+                    value={userDraft.given_name}
+                    onChange={(event) => setUserDraft(prev => prev ? { ...prev, given_name: event.target.value } : prev)}
+                  />
+                </label>
+
+                <label className="space-y-1 text-sm font-semibold">
+                  <span>Last Name</span>
+                  <input
+                    type="text"
+                    className="input-shell"
+                    value={userDraft.family_name}
+                    onChange={(event) => setUserDraft(prev => prev ? { ...prev, family_name: event.target.value } : prev)}
+                  />
+                </label>
+
+                <label className="space-y-1 text-sm font-semibold">
+                  <span>Email</span>
+                  <input
+                    type="email"
+                    className="input-shell"
+                    value={userDraft.email}
+                    onChange={(event) => setUserDraft(prev => prev ? { ...prev, email: event.target.value } : prev)}
+                  />
+                </label>
+
+                <label className="space-y-1 text-sm font-semibold">
+                  <span>Role</span>
+                  <select
+                    className="input-shell"
+                    value={userDraft.role}
+                    onChange={(event) => {
+                      const role = normalizeUserRole(event.target.value)
+                      setUserDraft(prev => prev ? { ...prev, role } : prev)
+                    }}
+                  >
+                    {ROLE_OPTIONS.map(role => (
+                      <option key={role} value={role}>
+                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="rounded-[3px] border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                  <p>Created: {selectedUser.created_at ? new Date(selectedUser.created_at).toLocaleString() : '-'}</p>
+                  <p>Last login: {selectedUser.last_login_at ? new Date(selectedUser.last_login_at).toLocaleString() : '-'}</p>
+                </div>
+
+                {userPanelError && <p className="text-sm font-semibold text-red-700">{userPanelError}</p>}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-4 py-3">
+                <button type="button" className="btn-lite" onClick={closeUserPanel} disabled={savingUser}>Cancel</button>
+                <button type="button" className="btn-primary" onClick={saveUser} disabled={savingUser}>
+                  {savingUser ? 'Saving...' : 'Save User'}
+                </button>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
