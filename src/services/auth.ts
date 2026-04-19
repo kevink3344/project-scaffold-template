@@ -23,6 +23,7 @@ export interface OidcUser {
   given_name: string
   family_name: string
   email: string
+  role?: string
 }
 
 export function markSessionAuthenticated(): void {
@@ -162,6 +163,7 @@ function normalizeServerProfileUser(user: Partial<OidcUser> | undefined): OidcUs
     given_name: givenName,
     family_name: familyName,
     email,
+    role: user?.role,
   }
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Bell, BookOpenText, ChevronLeft, LayoutDashboard, Library, Menu, Moon, Settings, ShieldCheck, Sun, Upload, UserRound } from 'lucide-react'
+import { Bell, BookOpenText, ChevronLeft, LayoutDashboard, Library, LogOut, Menu, Moon, Settings, ShieldCheck, Sun, Upload } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { clearAuthToken } from '../services/api/client'
 import { getSessionUser, getStoredUser, login as oidcLogin, logout as oidcLogout, type OidcUser } from '../services/auth'
@@ -22,6 +22,28 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
   const isDarkMode = themeMode === 'dark'
   const userDisplayName = user?.name || 'Signed in user'
   const userDisplayEmail = user?.email || 'No email provided'
+  const userRole = String(user?.role || 'user')
+
+  function getUserInitials(currentUser: OidcUser | null): string {
+    if (!currentUser) return 'SU'
+    const candidateName = currentUser.name || [currentUser.given_name, currentUser.family_name].filter(Boolean).join(' ')
+    const tokens = candidateName
+      .split(/\s+/)
+      .map(token => token.trim())
+      .filter(Boolean)
+    if (tokens.length >= 2) {
+      return `${tokens[0].charAt(0)}${tokens[1].charAt(0)}`.toUpperCase()
+    }
+    if (tokens.length === 1 && tokens[0].length > 0) {
+      return tokens[0].slice(0, 2).toUpperCase()
+    }
+    if (currentUser.email) {
+      return currentUser.email.slice(0, 2).toUpperCase()
+    }
+    return 'SU'
+  }
+
+  const userInitials = getUserInitials(user)
 
   useEffect(() => {
     let mounted = true
@@ -258,11 +280,10 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
                 <>
                   <div className="group relative hidden sm:block">
                     <div
-                      className="inline-flex items-center gap-2 rounded-[3px] border px-2 py-1 text-xs"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border text-sm font-bold"
                       style={{ borderColor: 'var(--border-muted)', color: 'var(--text-secondary)' }}
                     >
-                      <UserRound className="h-4 w-4" />
-                      <span className="max-w-[100px] truncate">{userDisplayName}</span>
+                      <span aria-hidden="true">{userInitials}</span>
                     </div>
                     <div
                       className="pointer-events-none absolute right-0 top-full z-50 mt-2 hidden min-w-[220px] rounded-[3px] border px-3 py-2 text-left text-xs group-hover:block"
@@ -274,9 +295,12 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
                     >
                       <p className="font-semibold">{userDisplayName}</p>
                       <p style={{ color: 'var(--text-secondary)' }}>{userDisplayEmail}</p>
+                      <p style={{ color: 'var(--text-secondary)' }}>{userRole}</p>
                     </div>
                   </div>
-                  <button type="button" className="btn-lite" onClick={handleLogout}>Logout</button>
+                  <button type="button" className="btn-lite" onClick={handleLogout} aria-label="Logout" title="Logout">
+                    <LogOut className="h-4 w-4" />
+                  </button>
                 </>
               ) : (
                 <button type="button" className="btn-primary" onClick={handleLogin}>Login</button>
