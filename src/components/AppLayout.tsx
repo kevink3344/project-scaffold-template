@@ -16,6 +16,8 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [user, setUser] = useState<OidcUser | null>(() => getStoredUser())
   const isDarkMode = themeMode === 'dark'
+  const userDisplayName = user?.name || 'Signed in user'
+  const userDisplayEmail = user?.email || 'No email provided'
 
   useEffect(() => {
     let mounted = true
@@ -189,12 +191,25 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
               </button>
               {user ? (
                 <>
-                  <div
-                    className="hidden sm:inline-flex items-center gap-2 rounded-[3px] border px-2 py-1 text-xs"
-                    style={{ borderColor: 'var(--border-muted)', color: 'var(--text-secondary)' }}
-                  >
-                    <UserRound className="h-4 w-4" />
-                    <span className="max-w-[100px] truncate">{user.name || 'Signed in'}</span>
+                  <div className="group relative hidden sm:block">
+                    <div
+                      className="inline-flex items-center gap-2 rounded-[3px] border px-2 py-1 text-xs"
+                      style={{ borderColor: 'var(--border-muted)', color: 'var(--text-secondary)' }}
+                    >
+                      <UserRound className="h-4 w-4" />
+                      <span className="max-w-[100px] truncate">{userDisplayName}</span>
+                    </div>
+                    <div
+                      className="pointer-events-none absolute right-0 top-full z-50 mt-2 hidden min-w-[220px] rounded-[3px] border px-3 py-2 text-left text-xs group-hover:block"
+                      style={{
+                        background: 'var(--card-bg)',
+                        borderColor: 'var(--border-muted)',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      <p className="font-semibold">{userDisplayName}</p>
+                      <p style={{ color: 'var(--text-secondary)' }}>{userDisplayEmail}</p>
+                    </div>
                   </div>
                   <button type="button" className="btn-lite" onClick={handleLogout}>Logout</button>
                 </>

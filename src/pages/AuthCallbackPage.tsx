@@ -7,37 +7,43 @@ export default function AuthCallbackPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const code = params.get('code')
-    const state = params.get('state')
-    const isAppServiceCallback = window.location.pathname.startsWith('/.auth/login/')
-    const isSignedInLanding = window.location.pathname === '/auth/signed-in'
+    async function completeAuthFlow() {
+      const params = new URLSearchParams(window.location.search)
+      const code = params.get('code')
+      const state = params.get('state')
+      const isAppServiceCallback = window.location.pathname.startsWith('/.auth/login/')
+      const isSignedInLanding = window.location.pathname === '/auth/signed-in'
 
-    if (isSignedInLanding) {
-      markSessionAuthenticated()
-      navigate('/', { replace: true })
-      return
+      if (isSignedInLanding) {
+        markSessionAuthenticated()
+        // Ensure the authenticated user is upserted to Turso immediately after sign-in.
+        await fetch('/api/auth/profile', { credentials: 'include' }).catch(() => null)
+        navigate('/', { replace: true })
+        return
+      }
+
+      if (isAppServiceCallback) {
+        markSessionAuthenticated()
+
+        const redirectTarget = state?.startsWith('redir=')
+          ? decodeURIComponent(state.slice('redir='.length))
+          : `${window.location.origin}/`
+
+        window.location.replace(redirectTarget)
+        return
+      }
+
+      if (!code || !state) {
+        setError('Missing authorization code or state.')
+        return
+      }
+
+      handleCallback(code, state)
+        .then(() => navigate('/', { replace: true }))
+        .catch((err: Error) => setError(err.message))
     }
 
-    if (isAppServiceCallback) {
-      markSessionAuthenticated()
-
-      const redirectTarget = state?.startsWith('redir=')
-        ? decodeURIComponent(state.slice('redir='.length))
-        : `${window.location.origin}/`
-
-      window.location.replace(redirectTarget)
-      return
-    }
-
-    if (!code || !state) {
-      setError('Missing authorization code or state.')
-      return
-    }
-
-    handleCallback(code, state)
-      .then(() => navigate('/', { replace: true }))
-      .catch((err: Error) => setError(err.message))
+    void completeAuthFlow()
   }, [navigate])
 
   if (error) {
