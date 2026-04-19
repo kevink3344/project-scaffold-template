@@ -49,7 +49,29 @@ await db.executeMultiple(`
     team_id  INTEGER NOT NULL,
     PRIMARY KEY (user_sub, team_id)
   );
+
+  CREATE TABLE IF NOT EXISTS categories (
+    id         TEXT    PRIMARY KEY,
+    name       TEXT    NOT NULL UNIQUE,
+    sort_order INTEGER NOT NULL DEFAULT 0
+  );
 `)
+
+// Seed default categories if the table is empty
+{
+  const countResult = await db.execute('SELECT COUNT(*) as count FROM categories')
+  const catCount = Number(countResult.rows[0][0])
+  if (catCount === 0) {
+    const defaults = ['HR', 'Finance', 'Operations', 'Legal', 'Safety', 'Training']
+    for (let i = 0; i < defaults.length; i++) {
+      await db.execute({
+        sql: 'INSERT OR IGNORE INTO categories (id, name, sort_order) VALUES (?, ?, ?)',
+        args: [`cat-${i + 1}`, defaults[i], i],
+      })
+    }
+    console.log('[db] Seeded default categories.')
+  }
+}
 
 // Map a libSQL ResultSet's first row to a plain object
 function rowToObj(resultSet) {
@@ -385,6 +407,55 @@ const server = http.createServer(async (req, res) => {
     const result = await db.execute('SELECT * FROM teams ORDER BY name')
     sendJson(res, 200, { teams: rowsToObjs(result) })
     return
+  }
+
+  // ---------------------------------------------------------------------------
+  // Categories
+  // ---------------------------------------------------------------------------
+
+  // GET /api/categories — list all
+  if (url.pathname === '/api/categories' && req.method === 'GET') {
+    const result = await db.execute('SELECT id, name, sort_order FROM categories ORDER BY sort_order, name')
+    sendJson(res, 200, { categories: rowsToObjs(result) })
+    return
+  }
+
+  // POST /api/categories — create
+  if (url.pathname === '/api/categories' && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req)
+      const name = String(body.name || '').trim()
+      if (!name) {
+        sendJson(res, 400, { error: 'name is required' })
+        return
+      }
+      const id = `cat-${crypto.randomUUID()}`
+      const orderResult = await db.execute('SELECT COALESCE(MAX(sort_order), -1) + 1 as next_order FROM categories')
+      const nextOrder = Number(orderResult.rows[0][0])
+      await db.execute({
+        sql: 'INSERT INTO categories (id, name, sort_order) VALUES (?, ?, ?)',
+        args: [id, name, nextOrder],
+      })
+      sendJson(res, 201, { id, name, sort_order: nextOrder })
+    } catch (err) {
+      if (String(err?.message).includes('UNIQUE')) {
+        sendJson(res, 409, { error: 'A category with that name already exists.' })
+      } else {
+        sendJson(res, 400, { error: 'Bad request' })
+      }
+    }
+    return
+  }
+
+  // DELETE /api/categories/:id
+  {
+    const deleteMatch = url.pathname.match(/^\/api\/categories\/([^/]+)$/)
+    if (deleteMatch && req.method === 'DELETE') {
+      const catId = deleteMatch[1]
+      await db.execute({ sql: 'DELETE FROM categories WHERE id = ?', args: [catId] })
+      sendJson(res, 200, { deleted: catId })
+      return
+    }
   }
 
   // Webhook test � sends a sample payload to PA_NEW_USER_WEBHOOK_URL and reports back

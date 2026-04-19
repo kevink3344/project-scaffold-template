@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LayoutGrid, Mic, MicOff, Table } from 'lucide-react'
-import { DEFAULT_CATEGORIES, getDocuments, getRecentlyViewed } from '../services/documentStore'
+import { useCategories } from '../hooks/useCategories'
+import { getDocuments, getRecentlyViewed } from '../services/documentStore'
 import type { DocumentListRecord } from '../types/documents'
 
 type ViewMode = 'card' | 'table'
@@ -37,6 +38,7 @@ export default function HomePage() {
   const [viewMode, setViewMode] = useState<ViewMode>('card')
   const [listening, setListening] = useState(false)
 
+  const categories = useCategories()
   const allDocuments = useMemo(() => getDocuments(), [])
 
   const filtered = useMemo(() => {
@@ -86,7 +88,7 @@ export default function HomePage() {
       <section className="card-shell space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-[var(--brand-navy)]">Search Documents</h2>
-          <div className="rounded-[3px] border border-slate-300 bg-white px-3 py-1 text-sm font-medium">
+          <div className="rounded-[3px] border px-3 py-1 text-sm font-medium" style={{ borderColor: 'var(--border-muted)', background: 'var(--surface-subtle)', color: 'var(--text-primary)' }}>
             Results: {filtered.length}
           </div>
         </div>
@@ -105,12 +107,12 @@ export default function HomePage() {
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
-            <select value={category} onChange={(event) => setCategory(event.target.value)} className="input-shell h-12 min-w-44">
+          <div className="flex flex-wrap items-center gap-2">
+            <select value={category} onChange={(event) => setCategory(event.target.value)} className="input-shell h-12 flex-1 min-w-36">
               <option value="all">All Categories</option>
-              {DEFAULT_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
-            <div className="inline-flex rounded-[3px] border border-slate-300 bg-white p-1">
+            <div className="inline-flex rounded-[3px] border p-1" style={{ borderColor: 'var(--border-muted)', background: 'var(--card-bg)' }}>
               <button type="button" className={`view-toggle ${viewMode === 'card' ? 'view-toggle-active' : ''}`} onClick={() => setViewMode('card')}>
                 <LayoutGrid className="h-4 w-4" />
               </button>
@@ -127,7 +129,7 @@ export default function HomePage() {
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-600">Recently Viewed</h3>
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
             {recentlyViewed.map(item => (
-              <Link key={item.id} to={`/documents/${item.id}`} className="rounded-[3px] border border-slate-300 bg-white p-3 transition hover:border-[var(--accent-bg)]">
+              <Link key={item.id} to={`/documents/${item.id}`} className="rounded-[3px] border p-3 transition" style={{ borderColor: 'var(--border-muted)', background: 'var(--card-bg)' }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent-bg)')} onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border-muted)') }>
                 <p className="font-semibold">{item.name}</p>
                 <p className="text-xs text-slate-500">{item.issuer}</p>
               </Link>

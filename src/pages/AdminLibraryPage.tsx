@@ -32,7 +32,7 @@ export default function AdminLibraryPage() {
           <h2 className="text-xl font-semibold text-[var(--brand-navy)]">Admin - Document Library</h2>
           <div className="flex items-center gap-2">
             <Link to="/admin/upload" className="btn-primary">Upload New Document</Link>
-            <div className="inline-flex rounded-[3px] border border-slate-300 bg-white p-1">
+            <div className="inline-flex rounded-[3px] border p-1" style={{ borderColor: 'var(--border-muted)', background: 'var(--card-bg)' }}>
               <button type="button" onClick={() => setViewMode('table')} className={`view-toggle ${viewMode === 'table' ? 'view-toggle-active' : ''}`}><Table className="h-4 w-4" /></button>
               <button type="button" onClick={() => setViewMode('card')} className={`view-toggle ${viewMode === 'card' ? 'view-toggle-active' : ''}`}><LayoutGrid className="h-4 w-4" /></button>
             </div>
@@ -43,7 +43,7 @@ export default function AdminLibraryPage() {
       </section>
 
       {viewMode === 'table' ? (
-        <section className="card-shell overflow-x-auto p-0">
+        <section className="card-shell overflow-x-auto p-0 table-scroll-hint">
           <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-left">

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type DragEvent, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { DEFAULT_CATEGORIES, getDocumentById, getDocumentTypes, upsertDocument } from '../services/documentStore'
+import { useCategories } from '../hooks/useCategories'
+import { getDocumentById, getDocumentTypes, upsertDocument } from '../services/documentStore'
 import type { DocumentListRecord, DocumentStatusBadge } from '../types/documents'
 
 interface UploadEditPageProps {
@@ -49,6 +50,7 @@ export default function UploadEditPage({ mode }: UploadEditPageProps) {
   const [dragActive, setDragActive] = useState(false)
 
   const docTypes = useMemo(() => getDocumentTypes(), [])
+  const categories = useCategories()
 
   useEffect(() => {
     if (mode !== 'edit') return
@@ -185,12 +187,17 @@ export default function UploadEditPage({ mode }: UploadEditPageProps) {
           <div>
             <p className="mb-2 text-sm font-semibold">Categories (multi-select)</p>
             <div className="flex flex-wrap gap-2">
-              {DEFAULT_CATEGORIES.map(cat => (
+              {categories.map(cat => (
                 <button
                   key={cat}
                   type="button"
                   onClick={() => toggleCategory(cat)}
-                  className={`rounded-[3px] border px-2 py-1 text-sm ${form.categories.includes(cat) ? 'border-[var(--accent-bg)] bg-blue-100' : 'border-slate-300 bg-white'}`}
+                  className={`rounded-[3px] border px-2 py-1 text-sm ${
+                    form.categories.includes(cat)
+                      ? 'border-[var(--accent-bg)] bg-blue-100'
+                      : 'border-[var(--border-muted)]'
+                  }`}
+                  style={form.categories.includes(cat) ? { background: 'var(--chip-bg)', color: 'var(--chip-text)' } : { background: 'var(--card-bg)', color: 'var(--text-primary)' }}
                 >
                   {cat}
                 </button>

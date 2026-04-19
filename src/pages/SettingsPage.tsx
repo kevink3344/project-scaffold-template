@@ -22,7 +22,7 @@ function AccordionSection({ title, children, defaultOpen = false }: SectionProps
 
   return (
     <section className="card-shell overflow-hidden p-0">
-      <button type="button" className="flex w-full items-center justify-between border-b border-slate-200 px-4 py-3 text-left" onClick={() => setOpen(prev => !prev)}>
+      <button type="button" className="flex w-full items-center justify-between border-b px-4 py-3 text-left" style={{ borderColor: 'var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-primary)' }} onClick={() => setOpen(prev => !prev)}>
         <span className="font-semibold">{title}</span>
         <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
           <ChevronDown className="h-4 w-4" />

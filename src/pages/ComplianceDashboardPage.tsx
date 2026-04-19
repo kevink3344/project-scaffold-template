@@ -1,10 +1,12 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { DEFAULT_CATEGORIES, getComplianceStatus, getDocuments, getFreshnessThresholds } from '../services/documentStore'
+import { useCategories } from '../hooks/useCategories'
+import { getComplianceStatus, getDocuments, getFreshnessThresholds } from '../services/documentStore'
 
 export default function ComplianceDashboardPage() {
   const docs = useMemo(() => getDocuments(), [])
   const thresholds = useMemo(() => getFreshnessThresholds(), [])
+  const categories = useCategories()
 
   const stats = useMemo(() => {
     const totals = { total: docs.length, current: 0, reviewSoon: 0, outOfDate: 0 }
@@ -30,11 +32,11 @@ export default function ComplianceDashboardPage() {
   }, [docs, thresholds])
 
   const categoryCoverage = useMemo(() => {
-    return DEFAULT_CATEGORIES.map(cat => {
+    return categories.map(cat => {
       const count = docs.filter(doc => doc.categories.includes(cat)).length
       return { category: cat, count }
     })
-  }, [docs])
+  }, [docs, categories])
 
   const maxCoverage = Math.max(1, ...categoryCoverage.map(item => item.count))
 
@@ -101,7 +103,7 @@ export default function ComplianceDashboardPage() {
                     <span className={empty ? 'font-semibold text-red-700' : ''}>{item.category}</span>
                     <span className="font-mono">{item.count}</span>
                   </div>
-                  <div className="h-3 rounded-[3px] border border-slate-300 bg-white">
+                  <div className="h-3 rounded-[3px] border" style={{ borderColor: 'var(--border-muted)', background: 'var(--surface-subtle)' }}>
                     <div className={`h-full rounded-[2px] ${empty ? 'bg-red-600' : 'bg-[var(--accent-bg)]'}`} style={{ width: empty ? '100%' : width }} />
                   </div>
                 </div>

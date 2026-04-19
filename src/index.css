@@ -1,17 +1,95 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
 @import "tailwindcss";
 
+/* =====================================================
+   CSS Custom Properties — light defaults
+   ===================================================== */
 :root {
+  /* Brand */
   --brand-navy: #004a7c;
   --brand-blue: #0078d4;
+
+  /* Layout backgrounds */
   --app-bg: #f4f7fb;
   --header-bg: #ffffff;
   --menu-bg: #e8eef5;
   --card-bg: #ffffff;
   --button-bg: #004a7c;
   --accent-bg: #0078d4;
+
+  /* Text */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  /* Borders */
+  --border-color: #e2e8f0;
+  --border-muted: #cbd5e1;
+
+  /* Surfaces */
+  --input-bg: #ffffff;
+  --surface-subtle: #f8fafc;
+
+  /* Sidebar */
+  --sidebar-link-color: #334155;
+  --sidebar-link-hover-bg: #f1f5f9;
+  --sidebar-link-active-bg: #dbeafe;
+  --sidebar-link-active-color: #1e40af;
+
+  /* Chips / pills */
+  --chip-bg: #eff6ff;
+  --chip-text: #1d4ed8;
+  --chip-border: #bfdbfe;
+  --compliance-bg: #eef2ff;
+  --compliance-text: #1e3a8a;
+  --compliance-border: #c7d2fe;
+  --status-bg: #f8fafc;
+  --status-text: #0f172a;
+  --status-border: #94a3b8;
 }
 
+/* =====================================================
+   Dark mode overrides — activated by .theme-dark class
+   ===================================================== */
+.theme-dark {
+  --brand-navy: #60a5fa;
+
+  --app-bg: #0f172a;
+  --header-bg: #1a2744;
+  --menu-bg: #1e2d3d;
+  --card-bg: #1e293b;
+  --button-bg: #1d6cbf;
+  --accent-bg: #60a5fa;
+
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --border-color: #334155;
+  --border-muted: #475569;
+
+  --input-bg: #263448;
+  --surface-subtle: #162032;
+
+  --sidebar-link-color: #cbd5e1;
+  --sidebar-link-hover-bg: #263448;
+  --sidebar-link-active-bg: #1e3a5f;
+  --sidebar-link-active-color: #93c5fd;
+
+  --chip-bg: #1e3a5f;
+  --chip-text: #93c5fd;
+  --chip-border: #2563eb;
+  --compliance-bg: #1e2d4a;
+  --compliance-text: #93c5fd;
+  --compliance-border: #1d4ed8;
+  --status-bg: #263448;
+  --status-text: #e2e8f0;
+  --status-border: #475569;
+}
+
+/* =====================================================
+   Base Reset
+   ===================================================== */
 * {
   box-sizing: border-box;
 }
@@ -26,15 +104,37 @@ body {
   margin: 0;
   font-family: Inter, 'Segoe UI', sans-serif;
   background: var(--app-bg);
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .font-mono {
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 
+/* =====================================================
+   Dark mode: override hardcoded Tailwind utility classes
+   ===================================================== */
+.theme-dark .bg-white { background-color: var(--card-bg) !important; }
+.theme-dark .bg-slate-50 { background-color: var(--surface-subtle) !important; }
+.theme-dark .border-slate-200 { border-color: var(--border-color) !important; }
+.theme-dark .border-slate-100 { border-color: var(--border-color) !important; }
+.theme-dark .border-slate-300 { border-color: var(--border-muted) !important; }
+.theme-dark .text-slate-600 { color: var(--text-secondary) !important; }
+.theme-dark .text-slate-500 { color: var(--text-secondary) !important; }
+.theme-dark .text-slate-900 { color: var(--text-primary) !important; }
+.theme-dark .text-emerald-700 { color: #4ade80 !important; }
+.theme-dark .text-amber-700 { color: #fbbf24 !important; }
+.theme-dark .text-red-700 { color: #f87171 !important; }
+.theme-dark .text-red-600 { color: #f87171 !important; }
+.theme-dark .bg-blue-100 { background-color: var(--chip-bg) !important; }
+.theme-dark .bg-blue-50 { background-color: var(--surface-subtle) !important; }
+
+/* =====================================================
+   Component Utility Classes
+   ===================================================== */
+
 .card-shell {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   border-radius: 3px;
   background: var(--card-bg);
   padding: 1rem;
@@ -42,14 +142,15 @@ body {
 
 .input-shell {
   width: 100%;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-muted);
   border-radius: 3px;
   padding: 0.55rem 0.75rem;
-  background: #fff;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .input-shell:focus {
-  outline: 2px solid color-mix(in srgb, var(--accent-bg) 35%, white);
+  outline: 2px solid color-mix(in srgb, var(--accent-bg) 45%, transparent);
   outline-offset: 1px;
 }
 
@@ -60,23 +161,25 @@ body {
   border-radius: 3px;
   padding: 0.45rem 0.7rem;
   font-weight: 600;
+  cursor: pointer;
 }
 
 .btn-primary:hover {
-  filter: brightness(1.05);
+  filter: brightness(1.1);
 }
 
 .btn-lite {
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-muted);
   border-radius: 3px;
-  background: #fff;
-  color: #0f172a;
+  background: var(--card-bg);
+  color: var(--text-primary);
   padding: 0.4rem 0.65rem;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.3rem;
+  cursor: pointer;
 }
 
 .btn-lite:hover {
@@ -88,10 +191,10 @@ body {
   font-size: 0.7rem;
   letter-spacing: 0.03em;
   font-weight: 700;
-  border: 1px solid #94a3b8;
+  border: 1px solid var(--status-border);
   border-radius: 3px;
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--status-bg);
+  color: var(--status-text);
   padding: 0.15rem 0.4rem;
 }
 
@@ -100,18 +203,18 @@ body {
   font-size: 0.7rem;
   letter-spacing: 0.03em;
   font-weight: 700;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--compliance-border);
   border-radius: 3px;
-  background: #eef2ff;
-  color: #1e3a8a;
+  background: var(--compliance-bg);
+  color: var(--compliance-text);
   padding: 0.15rem 0.4rem;
 }
 
 .chip {
-  border: 1px solid #bfdbfe;
+  border: 1px solid var(--chip-border);
   border-radius: 3px;
-  background: #eff6ff;
-  color: #1d4ed8;
+  background: var(--chip-bg);
+  color: var(--chip-text);
   font-size: 0.72rem;
   font-weight: 600;
   padding: 0.1rem 0.35rem;
@@ -125,18 +228,19 @@ body {
   border-radius: 3px;
   padding: 0.5rem 0.65rem;
   font-size: 0.9rem;
-  color: #1e293b;
+  color: var(--sidebar-link-color);
+  text-decoration: none;
 }
 
 .sidebar-link:hover {
-  border-color: #94a3b8;
-  background: #f8fafc;
+  border-color: var(--border-muted);
+  background: var(--sidebar-link-hover-bg);
 }
 
 .sidebar-link-active {
   border-color: var(--accent-bg);
-  background: #eff6ff;
-  color: #0f172a;
+  background: var(--sidebar-link-active-bg);
+  color: var(--sidebar-link-active-color);
   font-weight: 600;
 }
 
@@ -147,14 +251,27 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
 }
 
 .view-toggle-active {
   border-color: var(--accent-bg);
-  background: #eff6ff;
+  background: var(--chip-bg);
+  color: var(--chip-text);
 }
 
-.theme-dark body,
-.theme-dark {
-  color: #e2e8f0;
+/* =====================================================
+   Mobile utilities
+   ===================================================== */
+@media (max-width: 767px) {
+  .table-scroll-hint::after {
+    content: '← scroll →';
+    display: block;
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    padding: 0.25rem;
+  }
 }
