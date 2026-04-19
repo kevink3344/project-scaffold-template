@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LayoutGrid, Mic, MicOff, Table } from 'lucide-react'
 import { useCategories } from '../hooks/useCategories'
@@ -37,9 +37,24 @@ export default function HomePage() {
   const [category, setCategory] = useState('all')
   const [viewMode, setViewMode] = useState<ViewMode>('card')
   const [listening, setListening] = useState(false)
+  const [allDocuments, setAllDocuments] = useState<DocumentListRecord[]>([])
+  const [recentIds, setRecentIds] = useState<string[]>([])
 
   const categories = useCategories()
-  const allDocuments = useMemo(() => getDocuments(), [])
+
+  useEffect(() => {
+    let mounted = true
+    async function loadData() {
+      const [documents, recentlyViewed] = await Promise.all([getDocuments(), getRecentlyViewed()])
+      if (!mounted) return
+      setAllDocuments(documents)
+      setRecentIds(recentlyViewed.map(item => item.id))
+    }
+    void loadData()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const filtered = useMemo(() => {
     return allDocuments.filter(item => {
@@ -53,11 +68,11 @@ export default function HomePage() {
 
   const recentlyViewed = useMemo(() => {
     const lookup = new Map(allDocuments.map(item => [item.id, item]))
-    return getRecentlyViewed()
-      .map(item => lookup.get(item.id))
+    return recentIds
+      .map(id => lookup.get(id))
       .filter((item): item is DocumentListRecord => Boolean(item))
       .slice(0, 8)
-  }, [allDocuments])
+  }, [allDocuments, recentIds])
 
   function handleVoiceSearch() {
     const SpeechRecognitionCtor = (window.SpeechRecognition || window.webkitSpeechRecognition) as (new () => SpeechRecognition) | undefined
@@ -107,11 +122,7 @@ export default function HomePage() {
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <select value={category} onChange={(event) => setCategory(event.target.value)} className="input-shell h-12 flex-1 min-w-36">
-              <option value="all">All Categories</option>
-              {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-            </select>
+          <div className="flex items-center justify-end gap-2">
             <div className="inline-flex rounded-[3px] border p-1" style={{ borderColor: 'var(--border-muted)', background: 'var(--card-bg)' }}>
               <button type="button" className={`view-toggle ${viewMode === 'card' ? 'view-toggle-active' : ''}`} onClick={() => setViewMode('card')}>
                 <LayoutGrid className="h-4 w-4" />
@@ -120,6 +131,29 @@ export default function HomePage() {
                 <Table className="h-4 w-4" />
               </button>
             </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Categories</p>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <button
+              type="button"
+              className={`chip whitespace-nowrap ${category === 'all' ? 'ring-1 ring-[var(--accent-bg)]' : ''}`}
+              onClick={() => setCategory('all')}
+            >
+              All Categories
+            </button>
+            {categories.map(cat => (
+              <button
+                key={cat}
+                type="button"
+                className={`chip whitespace-nowrap ${category === cat ? 'ring-1 ring-[var(--accent-bg)]' : ''}`}
+                onClick={() => setCategory(cat)}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
         </div>
       </section>

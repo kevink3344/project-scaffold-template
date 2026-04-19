@@ -1,12 +1,27 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCategories } from '../hooks/useCategories'
 import { getComplianceStatus, getDocuments, getFreshnessThresholds } from '../services/documentStore'
+import type { DocumentListRecord, FreshnessThresholds } from '../types/documents'
 
 export default function ComplianceDashboardPage() {
-  const docs = useMemo(() => getDocuments(), [])
-  const thresholds = useMemo(() => getFreshnessThresholds(), [])
+  const [docs, setDocs] = useState<DocumentListRecord[]>([])
+  const [thresholds, setThresholds] = useState<FreshnessThresholds>({ currentWithinDays: 365, reviewSoonWithinDays: 730 })
   const categories = useCategories()
+
+  useEffect(() => {
+    let mounted = true
+    async function loadData() {
+      const [documents, fresh] = await Promise.all([getDocuments(), getFreshnessThresholds()])
+      if (!mounted) return
+      setDocs(documents)
+      setThresholds(fresh)
+    }
+    void loadData()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const stats = useMemo(() => {
     const totals = { total: docs.length, current: 0, reviewSoon: 0, outOfDate: 0 }

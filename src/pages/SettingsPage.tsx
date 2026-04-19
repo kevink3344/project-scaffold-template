@@ -61,8 +61,8 @@ function AccordionSection({ title, children, defaultOpen = false }: SectionProps
 }
 
 export default function SettingsPage() {
-  const [thresholds, setThresholds] = useState(() => getFreshnessThresholds())
-  const [themeConfig, setThemeConfigState] = useState<ThemeConfig>(() => getThemeConfig())
+  const [thresholds, setThresholds] = useState({ currentWithinDays: 365, reviewSoonWithinDays: 730 })
+  const [themeConfig, setThemeConfigState] = useState<ThemeConfig>(defaultThemeConfig)
   const [users, setUsers] = useState<ApiUserRecord[]>([])
   const [usersLoading, setUsersLoading] = useState(true)
   const [usersError, setUsersError] = useState('')
@@ -75,6 +75,22 @@ export default function SettingsPage() {
     { key: 'buttonBg', label: 'Button Background' },
     { key: 'accent', label: 'Accent Color' },
   ] as const, [])
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadSettings() {
+      const [fresh, theme] = await Promise.all([getFreshnessThresholds(), getThemeConfig()])
+      if (!mounted) return
+      setThresholds(fresh)
+      setThemeConfigState(theme)
+    }
+
+    void loadSettings()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -140,13 +156,13 @@ export default function SettingsPage() {
     return user.sub
   }
 
-  function saveThresholds() {
-    setFreshnessThresholds(thresholds)
+  async function saveThresholds() {
+    await setFreshnessThresholds(thresholds)
     window.alert('Freshness thresholds saved.')
   }
 
-  function saveTheme() {
-    setThemeConfig(themeConfig)
+  async function saveTheme() {
+    await setThemeConfig(themeConfig)
     const root = document.documentElement
     root.style.setProperty('--app-bg', themeConfig.light.appBg)
     root.style.setProperty('--header-bg', themeConfig.light.headerBg)

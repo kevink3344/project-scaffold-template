@@ -27,6 +27,181 @@ const db = createClient({
   authToken: TURSO_DB_TOKEN,
 })
 
+const DEFAULT_CATEGORIES = ['HR', 'Finance', 'Operations', 'Legal', 'Safety', 'Training']
+
+const SEEDED_DOCUMENTS = [
+  {
+    id: 'doc-001',
+    name: 'Forklift Safety Data Sheet',
+    issuer: 'Safety Office',
+    code: 'SDS-FORK-2025',
+    revision_date: '2025-11-20',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Safety Data Sheet',
+    categories: ['Safety', 'Operations'],
+    locations: ['Warehouse A', 'Warehouse B'],
+    notes: 'Required reading for all warehouse team members.',
+    hazard_tags: ['Flammable', 'Compressed Gas'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Warehouse Staff', 'Safety Team'],
+  },
+  {
+    id: 'doc-002',
+    name: 'Employee Code of Conduct Policy',
+    issuer: 'Human Resources',
+    code: 'POL-HR-002',
+    revision_date: '2024-08-12',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Policy',
+    categories: ['HR', 'Legal'],
+    locations: ['Corporate HQ'],
+    notes: 'Annual acknowledgement required.',
+    hazard_tags: [],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['All Staff'],
+  },
+  {
+    id: 'doc-003',
+    name: 'Vendor Contract Template',
+    issuer: 'Legal Department',
+    code: 'CTR-LEG-011',
+    revision_date: '2023-03-04',
+    format_type: 'hybrid',
+    status_badge: 'draft',
+    status: 'active',
+    doc_type: 'Contract',
+    categories: ['Legal', 'Finance'],
+    locations: ['Procurement'],
+    notes: 'Draft pending approval by legal counsel.',
+    hazard_tags: ['Confidential'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Procurement', 'Legal'],
+  },
+  {
+    id: 'doc-004',
+    name: 'Fire Drill SOP',
+    issuer: 'Operations Excellence',
+    code: 'SOP-OPS-041',
+    revision_date: '2022-01-10',
+    format_type: 'pdf',
+    status_badge: 'archived',
+    status: 'archived',
+    doc_type: 'SOP',
+    categories: ['Operations', 'Safety'],
+    locations: ['All Sites'],
+    notes: 'Superseded by SOP-OPS-052.',
+    hazard_tags: ['Emergency'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['All Staff'],
+  },
+]
+
+const SEEDED_DOCUMENT_TYPES = [
+  {
+    id: 'dtype-1',
+    name: 'Safety Data Sheet',
+    description: 'Hazard and handling information',
+    date_created: '2024-01-03',
+    date_modified: '2025-01-12',
+    created_by: 'system',
+    modified_by: 'system',
+  },
+  {
+    id: 'dtype-2',
+    name: 'Policy',
+    description: 'Governance and compliance policy documents',
+    date_created: '2024-01-03',
+    date_modified: '2025-01-12',
+    created_by: 'system',
+    modified_by: 'system',
+  },
+]
+
+const SEEDED_VERSION_HISTORY = [
+  {
+    id: 'vh-1',
+    doc_name: 'Employee Code of Conduct Policy',
+    version_no: 'v3.2',
+    doc_changes: 'Updated whistleblower policy section.',
+    date_created: '2024-08-12',
+    date_modified: '2024-08-12',
+    created_by: 'hr.admin',
+    modified_by: 'hr.admin',
+  },
+  {
+    id: 'vh-2',
+    doc_name: 'Forklift Safety Data Sheet',
+    version_no: 'v2.0',
+    doc_changes: 'Revised PPE requirements and storage temperature.',
+    date_created: '2025-11-20',
+    date_modified: '2025-11-20',
+    created_by: 'safety.lead',
+    modified_by: 'safety.lead',
+  },
+]
+
+const DEFAULT_FRESHNESS_THRESHOLDS = { currentWithinDays: 365, reviewSoonWithinDays: 730 }
+const DEFAULT_THEME_MODE = 'light'
+const DEFAULT_THEME_CONFIG = {
+  light: {
+    appBg: '#f4f7fb',
+    headerBg: '#ffffff',
+    menuBg: '#e8eef5',
+    cardBg: '#ffffff',
+    buttonBg: '#004a7c',
+    accent: '#0078d4',
+  },
+  dark: {
+    appBg: '#0f172a',
+    headerBg: '#111827',
+    menuBg: '#0b1324',
+    cardBg: '#111827',
+    buttonBg: '#004a7c',
+    accent: '#38bdf8',
+  },
+}
+
+function parseJsonArray(input) {
+  try {
+    const parsed = JSON.parse(String(input || '[]'))
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function parseCsv(input) {
+  if (!input) return []
+  return String(input)
+    .split(',')
+    .map(value => value.trim())
+    .filter(Boolean)
+}
+
+function rowToDocument(row) {
+  return {
+    id: String(row.id),
+    name: String(row.name || ''),
+    issuer: String(row.issuer || ''),
+    code: String(row.code || ''),
+    revision_date: String(row.revision_date || ''),
+    format_type: String(row.format_type || 'pdf'),
+    status_badge: String(row.status_badge || 'active'),
+    status: String(row.status || 'active'),
+    doc_type: String(row.doc_type || ''),
+    categories: row.categories_csv ? parseCsv(row.categories_csv) : parseJsonArray(row.categories_json),
+    locations: parseJsonArray(row.locations_json),
+    notes: String(row.notes || ''),
+    hazard_tags: parseJsonArray(row.hazard_tags_json),
+    pdf_url: String(row.pdf_url || ''),
+    audience: parseJsonArray(row.audience_json),
+  }
+}
+
 await db.executeMultiple(`
   CREATE TABLE IF NOT EXISTS users (
     sub           TEXT PRIMARY KEY,
@@ -55,22 +230,187 @@ await db.executeMultiple(`
     name       TEXT    NOT NULL UNIQUE,
     sort_order INTEGER NOT NULL DEFAULT 0
   );
+
+  CREATE TABLE IF NOT EXISTS documents (
+    id              TEXT PRIMARY KEY,
+    name            TEXT NOT NULL,
+    issuer          TEXT NOT NULL,
+    code            TEXT NOT NULL,
+    revision_date   TEXT NOT NULL,
+    format_type     TEXT NOT NULL,
+    status_badge    TEXT NOT NULL,
+    status          TEXT NOT NULL,
+    doc_type        TEXT NOT NULL,
+    locations_json  TEXT NOT NULL DEFAULT '[]',
+    notes           TEXT NOT NULL DEFAULT '',
+    hazard_tags_json TEXT NOT NULL DEFAULT '[]',
+    pdf_url         TEXT NOT NULL DEFAULT '',
+    audience_json   TEXT NOT NULL DEFAULT '[]',
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS document_categories (
+    document_id TEXT NOT NULL,
+    category_id TEXT NOT NULL,
+    PRIMARY KEY (document_id, category_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS document_types (
+    id            TEXT PRIMARY KEY,
+    name          TEXT NOT NULL,
+    description   TEXT NOT NULL DEFAULT '',
+    date_created  TEXT NOT NULL,
+    date_modified TEXT NOT NULL,
+    created_by    TEXT NOT NULL,
+    modified_by   TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS document_version_history (
+    id            TEXT PRIMARY KEY,
+    doc_name      TEXT NOT NULL,
+    version_no    TEXT NOT NULL,
+    doc_changes   TEXT NOT NULL,
+    date_created  TEXT NOT NULL,
+    date_modified TEXT NOT NULL,
+    created_by    TEXT NOT NULL,
+    modified_by   TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS recently_viewed (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    document_id TEXT NOT NULL,
+    viewed_at   TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS app_settings (
+    setting_key  TEXT PRIMARY KEY,
+    setting_json TEXT NOT NULL
+  );
 `)
 
-// Seed default categories if the table is empty
+// Seed categories if table is empty
 {
   const countResult = await db.execute('SELECT COUNT(*) as count FROM categories')
   const catCount = Number(countResult.rows[0][0])
   if (catCount === 0) {
-    const defaults = ['HR', 'Finance', 'Operations', 'Legal', 'Safety', 'Training']
-    for (let i = 0; i < defaults.length; i++) {
+    for (let i = 0; i < DEFAULT_CATEGORIES.length; i++) {
       await db.execute({
         sql: 'INSERT OR IGNORE INTO categories (id, name, sort_order) VALUES (?, ?, ?)',
-        args: [`cat-${i + 1}`, defaults[i], i],
+        args: [`cat-${i + 1}`, DEFAULT_CATEGORIES[i], i],
       })
     }
     console.log('[db] Seeded default categories.')
   }
+}
+
+// Seed document library data into Turso when empty
+{
+  const docsCountResult = await db.execute('SELECT COUNT(*) as count FROM documents')
+  const docsCount = Number(docsCountResult.rows[0][0])
+
+  if (docsCount === 0) {
+    const now = new Date().toISOString()
+
+    for (const doc of SEEDED_DOCUMENTS) {
+      await db.execute({
+        sql: `INSERT INTO documents
+              (id, name, issuer, code, revision_date, format_type, status_badge, status, doc_type, locations_json, notes, hazard_tags_json, pdf_url, audience_json, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          doc.id,
+          doc.name,
+          doc.issuer,
+          doc.code,
+          doc.revision_date,
+          doc.format_type,
+          doc.status_badge,
+          doc.status,
+          doc.doc_type,
+          JSON.stringify(doc.locations),
+          doc.notes,
+          JSON.stringify(doc.hazard_tags),
+          doc.pdf_url,
+          JSON.stringify(doc.audience),
+          now,
+          now,
+        ],
+      })
+
+      for (const categoryName of doc.categories) {
+        let categoryId = null
+        const categoryResult = await db.execute({
+          sql: 'SELECT id FROM categories WHERE name = ?',
+          args: [categoryName],
+        })
+        if (categoryResult.rows.length > 0) {
+          categoryId = String(categoryResult.rows[0][0])
+        } else {
+          const nextOrderResult = await db.execute('SELECT COALESCE(MAX(sort_order), -1) + 1 FROM categories')
+          const nextOrder = Number(nextOrderResult.rows[0][0])
+          categoryId = `cat-${crypto.randomUUID()}`
+          await db.execute({
+            sql: 'INSERT INTO categories (id, name, sort_order) VALUES (?, ?, ?)',
+            args: [categoryId, categoryName, nextOrder],
+          })
+        }
+
+        await db.execute({
+          sql: 'INSERT OR IGNORE INTO document_categories (document_id, category_id) VALUES (?, ?)',
+          args: [doc.id, categoryId],
+        })
+      }
+    }
+    console.log('[db] Seeded documents and category links.')
+  }
+}
+
+// Seed document types
+{
+  const countResult = await db.execute('SELECT COUNT(*) as count FROM document_types')
+  const count = Number(countResult.rows[0][0])
+  if (count === 0) {
+    for (const item of SEEDED_DOCUMENT_TYPES) {
+      await db.execute({
+        sql: `INSERT INTO document_types (id, name, description, date_created, date_modified, created_by, modified_by)
+              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        args: [item.id, item.name, item.description, item.date_created, item.date_modified, item.created_by, item.modified_by],
+      })
+    }
+    console.log('[db] Seeded document types.')
+  }
+}
+
+// Seed version history
+{
+  const countResult = await db.execute('SELECT COUNT(*) as count FROM document_version_history')
+  const count = Number(countResult.rows[0][0])
+  if (count === 0) {
+    for (const item of SEEDED_VERSION_HISTORY) {
+      await db.execute({
+        sql: `INSERT INTO document_version_history (id, doc_name, version_no, doc_changes, date_created, date_modified, created_by, modified_by)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [item.id, item.doc_name, item.version_no, item.doc_changes, item.date_created, item.date_modified, item.created_by, item.modified_by],
+      })
+    }
+    console.log('[db] Seeded document version history.')
+  }
+}
+
+// Seed app settings
+{
+  await db.execute({
+    sql: 'INSERT OR IGNORE INTO app_settings (setting_key, setting_json) VALUES (?, ?)',
+    args: ['freshness_thresholds', JSON.stringify(DEFAULT_FRESHNESS_THRESHOLDS)],
+  })
+  await db.execute({
+    sql: 'INSERT OR IGNORE INTO app_settings (setting_key, setting_json) VALUES (?, ?)',
+    args: ['theme_config', JSON.stringify(DEFAULT_THEME_CONFIG)],
+  })
+  await db.execute({
+    sql: 'INSERT OR IGNORE INTO app_settings (setting_key, setting_json) VALUES (?, ?)',
+    args: ['theme_mode', JSON.stringify(DEFAULT_THEME_MODE)],
+  })
 }
 
 // Map a libSQL ResultSet's first row to a plain object
@@ -85,6 +425,44 @@ function rowsToObjs(resultSet) {
   return resultSet.rows.map(row =>
     Object.fromEntries(resultSet.columns.map((col, i) => [col, row[i]]))
   )
+}
+
+async function getAppSetting(settingKey, fallbackValue) {
+  const result = await db.execute({
+    sql: 'SELECT setting_json FROM app_settings WHERE setting_key = ?',
+    args: [settingKey],
+  })
+  if (!result.rows.length) return fallbackValue
+  try {
+    return JSON.parse(String(result.rows[0][0]))
+  } catch {
+    return fallbackValue
+  }
+}
+
+async function setAppSetting(settingKey, value) {
+  await db.execute({
+    sql: `INSERT INTO app_settings (setting_key, setting_json)
+          VALUES (?, ?)
+          ON CONFLICT(setting_key) DO UPDATE SET setting_json = excluded.setting_json`,
+    args: [settingKey, JSON.stringify(value)],
+  })
+}
+
+async function ensureCategoryByName(name) {
+  const cleanName = String(name || '').trim()
+  if (!cleanName) return null
+  const existing = await db.execute({ sql: 'SELECT id FROM categories WHERE name = ?', args: [cleanName] })
+  if (existing.rows.length > 0) return String(existing.rows[0][0])
+
+  const nextOrderResult = await db.execute('SELECT COALESCE(MAX(sort_order), -1) + 1 FROM categories')
+  const nextOrder = Number(nextOrderResult.rows[0][0])
+  const categoryId = `cat-${crypto.randomUUID()}`
+  await db.execute({
+    sql: 'INSERT INTO categories (id, name, sort_order) VALUES (?, ?, ?)',
+    args: [categoryId, cleanName, nextOrder],
+  })
+  return categoryId
 }
 
 // ---------------------------------------------------------------------------
@@ -456,6 +834,248 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, { deleted: catId })
       return
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Documents
+  // ---------------------------------------------------------------------------
+
+  // GET /api/documents
+  if (url.pathname === '/api/documents' && req.method === 'GET') {
+    const result = await db.execute(`
+      SELECT
+        d.*, 
+        GROUP_CONCAT(c.name) AS categories_csv
+      FROM documents d
+      LEFT JOIN document_categories dc ON dc.document_id = d.id
+      LEFT JOIN categories c ON c.id = dc.category_id
+      GROUP BY d.id
+      ORDER BY d.updated_at DESC, d.name ASC
+    `)
+    const docs = rowsToObjs(result).map(rowToDocument)
+    sendJson(res, 200, { documents: docs })
+    return
+  }
+
+  // GET /api/documents/:id
+  {
+    const match = url.pathname.match(/^\/api\/documents\/([^/]+)$/)
+    if (match && req.method === 'GET') {
+      const id = decodeURIComponent(match[1])
+      const result = await db.execute({
+        sql: `SELECT d.*, GROUP_CONCAT(c.name) AS categories_csv
+              FROM documents d
+              LEFT JOIN document_categories dc ON dc.document_id = d.id
+              LEFT JOIN categories c ON c.id = dc.category_id
+              WHERE d.id = ?
+              GROUP BY d.id`,
+        args: [id],
+      })
+      if (!result.rows.length) {
+        sendJson(res, 404, { error: 'Document not found' })
+        return
+      }
+      const doc = rowToDocument(rowToObj(result))
+      sendJson(res, 200, { document: doc })
+      return
+    }
+  }
+
+  // POST /api/documents (create/update)
+  if (url.pathname === '/api/documents' && req.method === 'POST') {
+    try {
+      const input = await readJsonBody(req)
+      const id = String(input.id || `doc-${crypto.randomUUID()}`)
+      const now = new Date().toISOString()
+      const categories = Array.isArray(input.categories) ? input.categories.map(String) : []
+      const locations = Array.isArray(input.locations) ? input.locations.map(String) : []
+      const hazardTags = Array.isArray(input.hazard_tags) ? input.hazard_tags.map(String) : []
+      const audience = Array.isArray(input.audience) ? input.audience.map(String) : []
+
+      await db.execute({
+        sql: `INSERT INTO documents
+              (id, name, issuer, code, revision_date, format_type, status_badge, status, doc_type, locations_json, notes, hazard_tags_json, pdf_url, audience_json, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT(id) DO UPDATE SET
+                name = excluded.name,
+                issuer = excluded.issuer,
+                code = excluded.code,
+                revision_date = excluded.revision_date,
+                format_type = excluded.format_type,
+                status_badge = excluded.status_badge,
+                status = excluded.status,
+                doc_type = excluded.doc_type,
+                locations_json = excluded.locations_json,
+                notes = excluded.notes,
+                hazard_tags_json = excluded.hazard_tags_json,
+                pdf_url = excluded.pdf_url,
+                audience_json = excluded.audience_json,
+                updated_at = excluded.updated_at`,
+        args: [
+          id,
+          String(input.name || ''),
+          String(input.issuer || ''),
+          String(input.code || ''),
+          String(input.revision_date || ''),
+          String(input.format_type || 'pdf'),
+          String(input.status_badge || 'active'),
+          String(input.status || 'active'),
+          String(input.doc_type || ''),
+          JSON.stringify(locations),
+          String(input.notes || ''),
+          JSON.stringify(hazardTags),
+          String(input.pdf_url || ''),
+          JSON.stringify(audience),
+          now,
+          now,
+        ],
+      })
+
+      await db.execute({ sql: 'DELETE FROM document_categories WHERE document_id = ?', args: [id] })
+      for (const categoryName of categories) {
+        const categoryId = await ensureCategoryByName(categoryName)
+        if (!categoryId) continue
+        await db.execute({
+          sql: 'INSERT OR IGNORE INTO document_categories (document_id, category_id) VALUES (?, ?)',
+          args: [id, categoryId],
+        })
+      }
+
+      const result = await db.execute({
+        sql: `SELECT d.*, GROUP_CONCAT(c.name) AS categories_csv
+              FROM documents d
+              LEFT JOIN document_categories dc ON dc.document_id = d.id
+              LEFT JOIN categories c ON c.id = dc.category_id
+              WHERE d.id = ?
+              GROUP BY d.id`,
+        args: [id],
+      })
+      sendJson(res, 200, { document: rowToDocument(rowToObj(result)) })
+    } catch {
+      sendJson(res, 400, { error: 'Bad request' })
+    }
+    return
+  }
+
+  // DELETE /api/documents/:id
+  {
+    const match = url.pathname.match(/^\/api\/documents\/([^/]+)$/)
+    if (match && req.method === 'DELETE') {
+      const id = decodeURIComponent(match[1])
+      await db.execute({ sql: 'DELETE FROM document_categories WHERE document_id = ?', args: [id] })
+      await db.execute({ sql: 'DELETE FROM documents WHERE id = ?', args: [id] })
+      sendJson(res, 200, { deleted: id })
+      return
+    }
+  }
+
+  // GET /api/document-types
+  if (url.pathname === '/api/document-types' && req.method === 'GET') {
+    const result = await db.execute('SELECT * FROM document_types ORDER BY name')
+    sendJson(res, 200, { documentTypes: rowsToObjs(result) })
+    return
+  }
+
+  // GET /api/version-history
+  if (url.pathname === '/api/version-history' && req.method === 'GET') {
+    const result = await db.execute('SELECT * FROM document_version_history ORDER BY date_modified DESC')
+    sendJson(res, 200, { versionHistory: rowsToObjs(result) })
+    return
+  }
+
+  // GET /api/recently-viewed
+  if (url.pathname === '/api/recently-viewed' && req.method === 'GET') {
+    const limit = Math.max(1, Math.min(100, Number(url.searchParams.get('limit') || 20)))
+    const result = await db.execute({
+      sql: `SELECT document_id AS id, MAX(viewed_at) AS viewed_at
+            FROM recently_viewed
+            GROUP BY document_id
+            ORDER BY viewed_at DESC
+            LIMIT ?`,
+      args: [limit],
+    })
+    sendJson(res, 200, { items: rowsToObjs(result) })
+    return
+  }
+
+  // POST /api/recently-viewed
+  if (url.pathname === '/api/recently-viewed' && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req)
+      const documentId = String(body.id || '').trim()
+      if (!documentId) {
+        sendJson(res, 400, { error: 'id is required' })
+        return
+      }
+      await db.execute({
+        sql: 'INSERT INTO recently_viewed (document_id, viewed_at) VALUES (?, ?)',
+        args: [documentId, new Date().toISOString()],
+      })
+      sendJson(res, 201, { ok: true })
+    } catch {
+      sendJson(res, 400, { error: 'Bad request' })
+    }
+    return
+  }
+
+  // ---------------------------------------------------------------------------
+  // App settings
+  // ---------------------------------------------------------------------------
+
+  if (url.pathname === '/api/settings/freshness-thresholds' && req.method === 'GET') {
+    const value = await getAppSetting('freshness_thresholds', DEFAULT_FRESHNESS_THRESHOLDS)
+    sendJson(res, 200, value)
+    return
+  }
+
+  if (url.pathname === '/api/settings/freshness-thresholds' && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req)
+      const value = {
+        currentWithinDays: Number(body.currentWithinDays || 0),
+        reviewSoonWithinDays: Number(body.reviewSoonWithinDays || 0),
+      }
+      await setAppSetting('freshness_thresholds', value)
+      sendJson(res, 200, value)
+    } catch {
+      sendJson(res, 400, { error: 'Bad request' })
+    }
+    return
+  }
+
+  if (url.pathname === '/api/settings/theme-config' && req.method === 'GET') {
+    const value = await getAppSetting('theme_config', DEFAULT_THEME_CONFIG)
+    sendJson(res, 200, value)
+    return
+  }
+
+  if (url.pathname === '/api/settings/theme-config' && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req)
+      await setAppSetting('theme_config', body)
+      sendJson(res, 200, body)
+    } catch {
+      sendJson(res, 400, { error: 'Bad request' })
+    }
+    return
+  }
+
+  if (url.pathname === '/api/settings/theme-mode' && req.method === 'GET') {
+    const value = await getAppSetting('theme_mode', DEFAULT_THEME_MODE)
+    sendJson(res, 200, { mode: value === 'dark' ? 'dark' : 'light' })
+    return
+  }
+
+  if (url.pathname === '/api/settings/theme-mode' && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req)
+      const mode = body.mode === 'dark' ? 'dark' : 'light'
+      await setAppSetting('theme_mode', mode)
+      sendJson(res, 200, { mode })
+    } catch {
+      sendJson(res, 400, { error: 'Bad request' })
+    }
+    return
   }
 
   // Webhook test � sends a sample payload to PA_NEW_USER_WEBHOOK_URL and reports back

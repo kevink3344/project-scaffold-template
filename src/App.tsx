@@ -14,12 +14,46 @@ import { getThemeConfig, getThemeMode, setThemeMode } from './services/documentS
 type ThemeMode = 'light' | 'dark'
 
 function App() {
-  const [themeMode, setThemeModeState] = useState<ThemeMode>(() => getThemeMode())
+  const [themeMode, setThemeModeState] = useState<ThemeMode>('light')
+  const [themeConfig, setThemeConfigState] = useState(() => ({
+    light: {
+      appBg: '#f4f7fb',
+      headerBg: '#ffffff',
+      menuBg: '#e8eef5',
+      cardBg: '#ffffff',
+      buttonBg: '#004a7c',
+      accent: '#0078d4',
+    },
+    dark: {
+      appBg: '#0f172a',
+      headerBg: '#111827',
+      menuBg: '#0b1324',
+      cardBg: '#111827',
+      buttonBg: '#004a7c',
+      accent: '#38bdf8',
+    },
+  }))
 
   useEffect(() => {
-    setThemeMode(themeMode)
+    let mounted = true
 
-    const palette = getThemeConfig()[themeMode]
+    async function loadThemeSettings() {
+      const [mode, config] = await Promise.all([getThemeMode(), getThemeConfig()])
+      if (!mounted) return
+      setThemeModeState(mode)
+      setThemeConfigState(config)
+    }
+
+    void loadThemeSettings()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    void setThemeMode(themeMode)
+
+    const palette = themeConfig[themeMode]
     const root = document.documentElement
     root.classList.toggle('theme-dark', themeMode === 'dark')
     root.style.setProperty('--app-bg', palette.appBg)
@@ -28,7 +62,7 @@ function App() {
     root.style.setProperty('--card-bg', palette.cardBg)
     root.style.setProperty('--button-bg', palette.buttonBg)
     root.style.setProperty('--accent-bg', palette.accent)
-  }, [themeMode])
+  }, [themeMode, themeConfig])
 
   function handleToggleThemeMode() {
     setThemeModeState(prevMode => (prevMode === 'light' ? 'dark' : 'light'))

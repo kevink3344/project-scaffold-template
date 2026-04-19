@@ -1,25 +1,45 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Download, ExternalLink, Volume2 } from 'lucide-react'
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist'
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { getComplianceStatus, getDocumentById, getFreshnessThresholds, trackRecentlyViewed } from '../services/documentStore'
+import type { DocumentListRecord, FreshnessThresholds } from '../types/documents'
 
 GlobalWorkerOptions.workerSrc = pdfWorker
 
 export default function DocumentDetailPage() {
   const { id = '' } = useParams()
   const [pageCount, setPageCount] = useState<number | null>(null)
-  const doc = useMemo(() => getDocumentById(id), [id])
+  const [doc, setDoc] = useState<DocumentListRecord | null>(null)
+  const [thresholds, setThresholds] = useState<FreshnessThresholds>({ currentWithinDays: 365, reviewSoonWithinDays: 730 })
 
   useEffect(() => {
-    if (!doc) return
-    trackRecentlyViewed(doc.id)
+    let mounted = true
 
-    getDocument(doc.pdf_url).promise
-      .then((pdf) => setPageCount(pdf.numPages))
-      .catch(() => setPageCount(null))
-  }, [doc])
+    async function loadDoc() {
+      const [documentRecord, fresh] = await Promise.all([getDocumentById(id), getFreshnessThresholds()])
+      if (!mounted) return
+      setDoc(documentRecord)
+      setThresholds(fresh)
+
+      if (!documentRecord) return
+      await trackRecentlyViewed(documentRecord.id).catch(() => null)
+
+      getDocument(documentRecord.pdf_url).promise
+        .then((pdf) => {
+          if (mounted) setPageCount(pdf.numPages)
+        })
+        .catch(() => {
+          if (mounted) setPageCount(null)
+        })
+    }
+
+    void loadDoc()
+    return () => {
+      mounted = false
+    }
+  }, [id])
 
   if (!doc) {
     return (
@@ -30,7 +50,7 @@ export default function DocumentDetailPage() {
     )
   }
 
-  const compliance = getComplianceStatus(doc, getFreshnessThresholds())
+  const compliance = getComplianceStatus(doc, thresholds)
 
   function handleReadAloud() {
     if (!doc) return

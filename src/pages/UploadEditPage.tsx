@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type DragEvent, type FormEvent } from 'react'
+import { useEffect, useState, type DragEvent, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useCategories } from '../hooks/useCategories'
 import { getDocumentById, getDocumentTypes, upsertDocument } from '../services/documentStore'
@@ -48,31 +48,51 @@ export default function UploadEditPage({ mode }: UploadEditPageProps) {
   const [form, setForm] = useState<FormState>(emptyForm)
   const [error, setError] = useState('')
   const [dragActive, setDragActive] = useState(false)
+  const [docTypes, setDocTypes] = useState<{ name: string }[]>([])
 
-  const docTypes = useMemo(() => getDocumentTypes(), [])
   const categories = useCategories()
 
   useEffect(() => {
-    if (mode !== 'edit') return
-    const item = getDocumentById(id)
-    if (!item) return
+    let mounted = true
+    async function loadDocTypes() {
+      const items = await getDocumentTypes()
+      if (!mounted) return
+      setDocTypes(items)
+    }
+    void loadDocTypes()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
-    setForm({
-      name: item.name,
-      issuer: item.issuer,
-      code: item.code,
-      revision_date: item.revision_date,
-      format_type: item.format_type,
-      status_badge: item.status_badge,
-      status: item.status,
-      doc_type: item.doc_type,
-      categories: item.categories,
-      locations: item.locations.join(', '),
-      notes: item.notes,
-      hazard_tags: item.hazard_tags.join(', '),
-      pdf_url: item.pdf_url,
-      audience: item.audience.join(', '),
-    })
+  useEffect(() => {
+    let mounted = true
+    async function loadDocument() {
+      if (mode !== 'edit') return
+      const item = await getDocumentById(id)
+      if (!item || !mounted) return
+
+      setForm({
+        name: item.name,
+        issuer: item.issuer,
+        code: item.code,
+        revision_date: item.revision_date,
+        format_type: item.format_type,
+        status_badge: item.status_badge,
+        status: item.status,
+        doc_type: item.doc_type,
+        categories: item.categories,
+        locations: item.locations.join(', '),
+        notes: item.notes,
+        hazard_tags: item.hazard_tags.join(', '),
+        pdf_url: item.pdf_url,
+        audience: item.audience.join(', '),
+      })
+    }
+    void loadDocument()
+    return () => {
+      mounted = false
+    }
   }, [id, mode])
 
   function toggleCategory(category: string) {
@@ -100,7 +120,7 @@ export default function UploadEditPage({ mode }: UploadEditPageProps) {
     setError('')
   }
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setError('')
 
@@ -127,7 +147,7 @@ export default function UploadEditPage({ mode }: UploadEditPageProps) {
       audience: form.audience.split(',').map(item => item.trim()).filter(Boolean),
     }
 
-    upsertDocument(doc)
+    await upsertDocument(doc)
     navigate('/admin/library')
   }
 

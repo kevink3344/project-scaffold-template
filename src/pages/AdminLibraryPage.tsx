@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LayoutGrid, Table, Trash2 } from 'lucide-react'
 import { deleteDocument, getComplianceStatus, getDocuments, getFreshnessThresholds } from '../services/documentStore'
+import type { DocumentListRecord, FreshnessThresholds } from '../types/documents'
 
 type ViewMode = 'table' | 'card'
 
@@ -9,9 +10,22 @@ export default function AdminLibraryPage() {
   const [query, setQuery] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>('table')
   const [refreshTick, setRefreshTick] = useState(0)
+  const [documents, setDocuments] = useState<DocumentListRecord[]>([])
+  const [thresholds, setThresholds] = useState<FreshnessThresholds>({ currentWithinDays: 365, reviewSoonWithinDays: 730 })
 
-  const documents = useMemo(() => getDocuments(), [refreshTick])
-  const thresholds = useMemo(() => getFreshnessThresholds(), [refreshTick])
+  useEffect(() => {
+    let mounted = true
+    async function loadData() {
+      const [docs, fresh] = await Promise.all([getDocuments(), getFreshnessThresholds()])
+      if (!mounted) return
+      setDocuments(docs)
+      setThresholds(fresh)
+    }
+    void loadData()
+    return () => {
+      mounted = false
+    }
+  }, [refreshTick])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -19,9 +33,9 @@ export default function AdminLibraryPage() {
     return documents.filter(item => `${item.name} ${item.issuer} ${item.code}`.toLowerCase().includes(q))
   }, [documents, query])
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (!window.confirm('Delete this document?')) return
-    deleteDocument(id)
+    await deleteDocument(id)
     setRefreshTick(prev => prev + 1)
   }
 
@@ -68,7 +82,7 @@ export default function AdminLibraryPage() {
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-2">
                       <Link to={`/admin/edit/${item.id}`} className="btn-lite">Edit</Link>
-                      <button type="button" className="btn-lite text-red-700" onClick={() => handleDelete(item.id)}>
+                      <button type="button" className="btn-lite text-red-700" onClick={() => { void handleDelete(item.id) }}>
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -91,7 +105,7 @@ export default function AdminLibraryPage() {
               </div>
               <div className="mt-3 flex items-center gap-2">
                 <Link to={`/admin/edit/${item.id}`} className="btn-lite">Edit</Link>
-                <button type="button" className="btn-lite text-red-700" onClick={() => handleDelete(item.id)}>Delete</button>
+                <button type="button" className="btn-lite text-red-700" onClick={() => { void handleDelete(item.id) }}>Delete</button>
               </div>
             </article>
           ))}
