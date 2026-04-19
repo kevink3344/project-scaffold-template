@@ -4,6 +4,7 @@ import type {
   DocumentTypeRecord,
   DocumentVersionHistoryRecord,
   FreshnessThresholds,
+  ReminderNotification,
   RecentlyViewedItem,
   ThemeConfig,
 } from '../types/documents'
@@ -94,6 +95,16 @@ export async function getRecentlyViewed(limit = 20): Promise<RecentlyViewedItem[
   try {
     const payload = await fetchJson<{ items: RecentlyViewedItem[] }>(`/api/recently-viewed?limit=${limit}`)
     return Array.isArray(payload.items) ? payload.items : []
+  } catch {
+    return []
+  }
+}
+
+export async function getReminderNotifications(limit?: number): Promise<ReminderNotification[]> {
+  try {
+    const suffix = typeof limit === 'number' ? `?limit=${limit}` : ''
+    const payload = await fetchJson<{ notifications: ReminderNotification[] }>(`/api/notifications${suffix}`)
+    return Array.isArray(payload.notifications) ? payload.notifications : []
   } catch {
     return []
   }

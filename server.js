@@ -225,6 +225,12 @@ await db.executeMultiple(`
     PRIMARY KEY (user_sub, team_id)
   );
 
+  CREATE TABLE IF NOT EXISTS user_categories (
+    user_sub     TEXT NOT NULL,
+    category_id  TEXT NOT NULL,
+    PRIMARY KEY (user_sub, category_id)
+  );
+
   CREATE TABLE IF NOT EXISTS categories (
     id         TEXT    PRIMARY KEY,
     name       TEXT    NOT NULL UNIQUE,
@@ -449,6 +455,100 @@ async function setAppSetting(settingKey, value) {
   })
 }
 
+async function listDocumentsForApi() {
+  const result = await db.execute(`
+    SELECT
+      d.*,
+      GROUP_CONCAT(c.name) AS categories_csv
+    FROM documents d
+    LEFT JOIN document_categories dc ON dc.document_id = d.id
+    LEFT JOIN categories c ON c.id = dc.category_id
+    GROUP BY d.id
+    ORDER BY d.updated_at DESC, d.name ASC
+  `)
+  return rowsToObjs(result).map(rowToDocument)
+}
+
+async function buildReminderNotifications(userContext, limit) {
+  const [documents, thresholds] = await Promise.all([
+    listDocumentsForApi(),
+    getAppSetting('freshness_thresholds', DEFAULT_FRESHNESS_THRESHOLDS),
+  ])
+
+  const userRole = String(userContext?.user?.role || 'user').toLowerCase()
+  const userCategories = new Set((userContext?.categories || []).map((item) => String(item).toLowerCase()))
+  const isAdmin = userRole === 'admin'
+  const now = Date.now()
+
+  const notifications = documents
+    .filter((doc) => {
+      if (isAdmin) return true
+
+      const docCategories = (doc.categories || []).map((item) => String(item).toLowerCase())
+      const docAudience = (doc.audience || []).map((item) => String(item).toLowerCase())
+      const categoryMatch = docCategories.some((category) => userCategories.has(category))
+      const roleMatch = docAudience.includes(userRole) || docAudience.includes('all staff')
+
+      return categoryMatch || roleMatch
+    })
+    .map((doc) => {
+      const ageDays = Math.floor((now - new Date(doc.revision_date).getTime()) / (1000 * 60 * 60 * 24))
+      let complianceStatus = 'current'
+      if (ageDays > thresholds.reviewSoonWithinDays) {
+        complianceStatus = 'out-of-date'
+      } else if (ageDays > thresholds.currentWithinDays) {
+        complianceStatus = 'review-soon'
+      }
+
+      if (complianceStatus === 'current') return null
+
+      const severity = complianceStatus === 'out-of-date' ? 'danger' : 'warning'
+      const title = complianceStatus === 'out-of-date'
+        ? 'Document is out of date'
+        : 'Document review due soon'
+      const message = complianceStatus === 'out-of-date'
+        ? `${doc.name} is ${ageDays} days old and has exceeded the review threshold.`
+        : `${doc.name} is ${ageDays} days old and should be reviewed soon.`
+
+      return {
+        id: `notif-${doc.id}-${complianceStatus}`,
+        document_id: doc.id,
+        document_name: doc.name,
+        issuer: doc.issuer,
+        revision_date: doc.revision_date,
+        age_days: ageDays,
+        compliance_status: complianceStatus,
+        severity,
+        title,
+        message,
+        created_at: doc.revision_date,
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (a.severity !== b.severity) return a.severity === 'danger' ? -1 : 1
+      return b.age_days - a.age_days
+    })
+
+  if (typeof limit === 'number') {
+    return notifications.slice(0, limit)
+  }
+
+  return notifications
+}
+
+async function getUserCategories(userSub) {
+  const result = await db.execute({
+    sql: `SELECT c.name
+          FROM user_categories uc
+          INNER JOIN categories c ON c.id = uc.category_id
+          WHERE uc.user_sub = ?
+          ORDER BY c.sort_order, c.name`,
+    args: [userSub],
+  })
+  return rowsToObjs(result).map((row) => String(row.name))
+}
+
 async function ensureCategoryByName(name) {
   const cleanName = String(name || '').trim()
   if (!cleanName) return null
@@ -463,6 +563,38 @@ async function ensureCategoryByName(name) {
     args: [categoryId, cleanName, nextOrder],
   })
   return categoryId
+}
+
+async function getAuthenticatedRequestContext(req, cookies) {
+  if (DEV_MODE) {
+    const devUser = getDevSessionUser(cookies)
+    if (!devUser) {
+      return { authenticated: false, user: null, dbUser: null, categories: [] }
+    }
+    const dbUser = await upsertAndGetUser(devUser)
+    const categories = await getUserCategories(devUser.sub)
+    return {
+      authenticated: true,
+      user: { ...devUser, role: dbUser?.role || 'user' },
+      dbUser,
+      categories,
+    }
+  }
+
+  const profile = buildProfileFromHeaders(req.headers)
+  if (!profile.authenticated || !profile.user) {
+    return { authenticated: false, user: null, dbUser: null, categories: [] }
+  }
+
+  const dbUser = await upsertAndGetUser(profile.user)
+  const user = { ...profile.user, role: dbUser?.role || 'user' }
+  const categories = await getUserCategories(user.sub)
+  return {
+    authenticated: true,
+    user,
+    dbUser,
+    categories,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -749,25 +881,19 @@ const server = http.createServer(async (req, res) => {
 
   // Auth profile � upserts user into Turso DB on every authenticated call
   if (url.pathname === '/api/auth/profile') {
-    let profile
-
-    if (DEV_MODE) {
-      const devUser = getDevSessionUser(cookies)
-      if (devUser) {
-        const dbUser = await upsertAndGetUser(devUser)
-        profile = { authenticated: true, user: { ...devUser, role: dbUser?.role || 'user' } }
-      } else {
-        profile = { authenticated: false }
-      }
-    } else {
-      profile = buildProfileFromHeaders(req.headers)
-      if (profile.authenticated && profile.user) {
-        const dbUser = await upsertAndGetUser(profile.user)
-        profile.user.role = dbUser?.role || 'user'
-      }
+    const context = await getAuthenticatedRequestContext(req, cookies)
+    if (!context.authenticated || !context.user) {
+      sendJson(res, 200, { authenticated: false })
+      return
     }
 
-    sendJson(res, 200, profile)
+    sendJson(res, 200, {
+      authenticated: true,
+      user: {
+        ...context.user,
+        categories: context.categories,
+      },
+    })
     return
   }
 
@@ -776,7 +902,14 @@ const server = http.createServer(async (req, res) => {
     const result = await db.execute(
       'SELECT sub, given_name, family_name, email, role, created_at, last_login_at FROM users ORDER BY family_name, given_name'
     )
-    sendJson(res, 200, { users: rowsToObjs(result) })
+    const users = []
+    for (const user of rowsToObjs(result)) {
+      users.push({
+        ...user,
+        categories: await getUserCategories(String(user.sub)),
+      })
+    }
+    sendJson(res, 200, { users })
     return
   }
 
@@ -1015,6 +1148,16 @@ const server = http.createServer(async (req, res) => {
     } catch {
       sendJson(res, 400, { error: 'Bad request' })
     }
+    return
+  }
+
+  // GET /api/notifications
+  if (url.pathname === '/api/notifications' && req.method === 'GET') {
+    const rawLimit = url.searchParams.get('limit')
+    const limit = rawLimit ? Math.max(1, Math.min(50, Number(rawLimit))) : undefined
+    const context = await getAuthenticatedRequestContext(req, cookies)
+    const notifications = await buildReminderNotifications(context, Number.isFinite(limit) ? limit : undefined)
+    sendJson(res, 200, { notifications })
     return
   }
 

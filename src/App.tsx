@@ -6,6 +6,7 @@ import AuthCallbackPage from './pages/AuthCallbackPage'
 import ComplianceDashboardPage from './pages/ComplianceDashboardPage'
 import DocumentDetailPage from './pages/DocumentDetailPage'
 import HomePage from './pages/HomePage'
+import NotificationsPage from './pages/NotificationsPage'
 import RecentlyViewedPage from './pages/RecentlyViewedPage'
 import SettingsPage from './pages/SettingsPage'
 import UploadEditPage from './pages/UploadEditPage'
@@ -74,6 +75,7 @@ function App() {
         <Route element={<AppLayout themeMode={themeMode} onToggleThemeMode={handleToggleThemeMode} />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/documents/:id" element={<DocumentDetailPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/recent" element={<RecentlyViewedPage />} />
           <Route path="/admin/library" element={<AdminLibraryPage />} />
           <Route path="/admin/upload" element={<UploadEditPage mode="create" />} />

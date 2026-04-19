@@ -1,128 +1,87 @@
 import { useEffect, useState } from 'react'
-import { RotateCcw } from 'lucide-react'
+import { BellRing, Siren, TriangleAlert } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import type { NotificationRecord } from '../services/api/exampleApi'
-import {
-  getCachedNotifications,
-  loadNotificationsFeed,
-  markAllNotificationsAsRead,
-  markNotificationAsRead,
-  markNotificationAsUnread,
-} from '../services/api/notificationsStore'
+import { getReminderNotifications } from '../services/documentStore'
+import type { ReminderNotification } from '../types/documents'
+
+function NotificationIcon({ severity }: { severity: ReminderNotification['severity'] }) {
+  if (severity === 'danger') return <Siren className="h-4 w-4 text-red-600" />
+  return <TriangleAlert className="h-4 w-4 text-amber-600" />
+}
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<NotificationRecord[]>([])
+  const [notifications, setNotifications] = useState<ReminderNotification[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
-  const unreadCount = notifications.filter(item => !item.is_read).length
 
   useEffect(() => {
-    setNotifications(getCachedNotifications())
-
+    let mounted = true
     async function load() {
       setIsLoading(true)
       setError('')
 
       try {
-        const data = await loadNotificationsFeed()
+        const data = await getReminderNotifications()
+        if (!mounted) return
         setNotifications(data)
       } catch (err) {
+        if (!mounted) return
         const message = err instanceof Error ? err.message : 'Unable to load notifications.'
         setError(message)
       } finally {
-        setIsLoading(false)
+        if (mounted) setIsLoading(false)
       }
     }
 
     void load()
+    return () => {
+      mounted = false
+    }
   }, [])
 
-  function handleMarkAsRead(notificationId: number) {
-    const updatedNotifications = markNotificationAsRead(notificationId)
-    setNotifications(updatedNotifications)
-  }
-
-  function handleMarkAsUnread(notificationId: number) {
-    const updatedNotifications = markNotificationAsUnread(notificationId)
-    setNotifications(updatedNotifications)
-  }
-
-  function handleMarkAllRead() {
-    const updatedNotifications = markAllNotificationsAsRead()
-    setNotifications(updatedNotifications)
-  }
-
   return (
-    <div className="notifications-page">
-      <header className="playground-header">
+    <div className="space-y-4">
+      <section className="card-shell flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="playground-title">All Notifications</h1>
-          <p className="playground-subtitle">Complete feed from notifications API. Unread: {unreadCount}</p>
+          <h2 className="text-xl font-semibold text-[var(--brand-navy)]">Notifications</h2>
+          <p className="text-sm text-slate-600">Review documents nearing review or already out of date.</p>
         </div>
-        <div className="notifications-actions">
-          <button className="btn btn-secondary" onClick={handleMarkAllRead} disabled={unreadCount === 0}>
-            Mark all read
-          </button>
-          <Link to="/" className="btn btn-secondary">Back Home</Link>
-          <Link to="/api-playground" className="btn">API Playground</Link>
-        </div>
-      </header>
+        <Link to="/" className="btn-lite">Back to Dashboard</Link>
+      </section>
 
-      {isLoading && <p className="notification-preview-state">Loading notifications...</p>}
-      {error && <p className="playground-error">{error}</p>}
+      {isLoading && <section className="card-shell text-sm text-slate-600">Loading notifications...</section>}
+      {error && <section className="card-shell text-sm font-semibold text-red-700">{error}</section>}
 
-      {!isLoading && !error && (
-        <div className="playground-table-wrap">
-          <table className="playground-users-table notifications-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Message</th>
-                <th>Type</th>
-                <th>Read</th>
-                <th>Date Created</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {notifications.map(notification => (
-                <tr key={notification.id} className={notification.is_read ? 'is-read' : 'is-unread'}>
-                  <td>{notification.id}</td>
-                  <td>{notification.title}</td>
-                  <td>{notification.message}</td>
-                  <td>{notification.type}</td>
-                  <td>{notification.is_read ? 'Yes' : 'No'}</td>
-                  <td>{notification.date_created}</td>
-                  <td>
-                    {notification.is_read ? (
-                      <div className="notification-read-actions">
-                        <span className="notification-table-read">Read</span>
-                        <button
-                          type="button"
-                          className="notification-table-icon-action"
-                          aria-label="Mark as unread"
-                          title="Mark as unread"
-                          onClick={() => handleMarkAsUnread(notification.id)}
-                        >
-                          <RotateCcw aria-hidden="true" />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn btn-secondary notification-table-action"
-                        onClick={() => handleMarkAsRead(notification.id)}
-                      >
-                        Mark as read
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {!isLoading && !error && notifications.length === 0 && (
+        <section className="card-shell flex items-center gap-3 text-sm text-slate-600">
+          <BellRing className="h-5 w-5" />
+          <span>No reminders right now. All documents are within freshness thresholds.</span>
+        </section>
+      )}
+
+      {!isLoading && !error && notifications.length > 0 && (
+        <section className="space-y-3">
+          {notifications.map(notification => (
+            <article key={notification.id} className="card-shell flex flex-wrap items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="mt-0.5">
+                  <NotificationIcon severity={notification.severity} />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold">{notification.title}</p>
+                  <p className="text-sm text-slate-600">{notification.message}</p>
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+                    <span className="chip">{notification.document_name}</span>
+                    <span>Issuer: {notification.issuer}</span>
+                    <span>Revision: {notification.revision_date}</span>
+                    <span>Age: {notification.age_days} days</span>
+                  </div>
+                </div>
+              </div>
+              <Link to={`/documents/${notification.document_id}`} className="btn-lite">Open Document</Link>
+            </article>
+          ))}
+        </section>
       )}
     </div>
   )

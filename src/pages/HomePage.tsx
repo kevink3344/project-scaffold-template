@@ -134,12 +134,14 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Categories</p>
-          <div className="flex gap-2 overflow-x-auto pb-1">
+        <div>
+          <div className="flex gap-2 overflow-x-auto py-1">
             <button
               type="button"
-              className={`chip whitespace-nowrap ${category === 'all' ? 'ring-1 ring-[var(--accent-bg)]' : ''}`}
+              className="chip whitespace-nowrap"
+              style={category === 'all'
+                ? { borderColor: 'var(--accent-bg)', background: 'var(--sidebar-link-active-bg)', color: 'var(--sidebar-link-active-color)' }
+                : undefined}
               onClick={() => setCategory('all')}
             >
               All Categories
@@ -148,7 +150,10 @@ export default function HomePage() {
               <button
                 key={cat}
                 type="button"
-                className={`chip whitespace-nowrap ${category === cat ? 'ring-1 ring-[var(--accent-bg)]' : ''}`}
+                className="chip whitespace-nowrap"
+                style={category === cat
+                  ? { borderColor: 'var(--accent-bg)', background: 'var(--sidebar-link-active-bg)', color: 'var(--sidebar-link-active-color)' }
+                  : undefined}
                 onClick={() => setCategory(cat)}
               >
                 {cat}

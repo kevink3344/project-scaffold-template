@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BookOpenText, ChevronLeft, LayoutDashboard, Library, Menu, Moon, Settings, ShieldCheck, Sun, Upload, UserRound } from 'lucide-react'
+import { Bell, BookOpenText, ChevronLeft, LayoutDashboard, Library, Menu, Moon, Settings, ShieldCheck, Sun, Upload, UserRound } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { clearAuthToken } from '../services/api/client'
 import { getSessionUser, getStoredUser, login as oidcLogin, logout as oidcLogout, type OidcUser } from '../services/auth'
+import { getReminderNotifications } from '../services/documentStore'
+import type { ReminderNotification } from '../types/documents'
 
 type ThemeMode = 'light' | 'dark'
 
@@ -14,6 +16,8 @@ interface AppLayoutProps {
 export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [notifications, setNotifications] = useState<ReminderNotification[]>([])
   const [user, setUser] = useState<OidcUser | null>(() => getStoredUser())
   const isDarkMode = themeMode === 'dark'
   const userDisplayName = user?.name || 'Signed in user'
@@ -25,6 +29,18 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
       if (mounted) setUser(sessionUser)
     })
     return () => { mounted = false }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+    async function loadNotifications() {
+      const items = await getReminderNotifications()
+      if (mounted) setNotifications(items)
+    }
+    void loadNotifications()
+    return () => {
+      mounted = false
+    }
   }, [])
 
   // Close mobile menu on resize to desktop
@@ -56,6 +72,7 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
   function closeMobileMenu() { setMobileMenuOpen(false) }
 
   const sidebarWidth = sidebarCollapsed ? 88 : 260
+  const notificationPreview = notifications.slice(0, 3)
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--app-bg)', color: 'var(--text-primary)' }}>
@@ -181,6 +198,54 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="relative">
+                <button
+                  type="button"
+                  className="btn-lite relative"
+                  onClick={() => setNotificationsOpen(prev => !prev)}
+                  aria-label="Notifications"
+                >
+                  <Bell className="h-4 w-4" />
+                  {notifications.length > 0 && (
+                    <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                      {notifications.length}
+                    </span>
+                  )}
+                </button>
+
+                {notificationsOpen && (
+                  <div
+                    className="absolute right-0 top-full z-50 mt-2 w-[320px] rounded-[3px] border p-3 shadow-sm"
+                    style={{ background: 'var(--card-bg)', borderColor: 'var(--border-muted)' }}
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold">Notifications</p>
+                      <Link to="/notifications" className="text-xs font-semibold" style={{ color: 'var(--accent-bg)' }} onClick={() => setNotificationsOpen(false)}>
+                        View all
+                      </Link>
+                    </div>
+
+                    <div className="space-y-2">
+                      {notificationPreview.length === 0 && (
+                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No reminders.</p>
+                      )}
+
+                      {notificationPreview.map((notification) => (
+                        <Link
+                          key={notification.id}
+                          to={`/documents/${notification.document_id}`}
+                          className="block rounded-[3px] border p-2"
+                          style={{ borderColor: 'var(--border-color)' }}
+                          onClick={() => setNotificationsOpen(false)}
+                        >
+                          <p className="text-sm font-semibold">{notification.title}</p>
+                          <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{notification.document_name}</p>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 className="btn-lite"

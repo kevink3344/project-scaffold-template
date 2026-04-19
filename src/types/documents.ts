@@ -45,6 +45,22 @@ export interface RecentlyViewedItem {
   viewed_at: string
 }
 
+export type ReminderSeverity = 'warning' | 'danger'
+
+export interface ReminderNotification {
+  id: string
+  document_id: string
+  document_name: string
+  issuer: string
+  revision_date: string
+  age_days: number
+  compliance_status: ComplianceStatus
+  severity: ReminderSeverity
+  title: string
+  message: string
+  created_at: string
+}
+
 export interface FreshnessThresholds {
   currentWithinDays: number
   reviewSoonWithinDays: number

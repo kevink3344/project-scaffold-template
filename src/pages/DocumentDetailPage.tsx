@@ -87,6 +87,13 @@ export default function DocumentDetailPage() {
         </div>
 
         <div className="mt-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Notes</p>
+          <div className="rounded-[3px] border border-slate-300 bg-white p-3">
+            <p className="text-sm text-slate-700 whitespace-pre-wrap">{doc.notes?.trim() ? doc.notes : 'No notes'}</p>
+          </div>
+        </div>
+
+        <div className="mt-4">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Hazard / Tags</p>
           <div className="flex flex-wrap gap-1">
             {doc.hazard_tags.length ? doc.hazard_tags.map(tag => <span key={tag} className="chip">{tag}</span>) : <span className="text-sm text-slate-500">No hazard tags</span>}
