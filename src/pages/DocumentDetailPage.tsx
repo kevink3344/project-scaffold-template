@@ -15,6 +15,7 @@ export default function DocumentDetailPage() {
   const [thresholds, setThresholds] = useState<FreshnessThresholds>({ currentWithinDays: 365, reviewSoonWithinDays: 730 })
   const [activity, setActivity] = useState<ActivityLogEntry[]>([])
   const [markingReviewed, setMarkingReviewed] = useState(false)
+  const [activeTab, setActiveTab] = useState<'details' | 'activity'>('details')
 
   useEffect(() => {
     let mounted = true
@@ -85,41 +86,90 @@ export default function DocumentDetailPage() {
     <div className="space-y-4">
       <section className="card-shell">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-2xl font-semibold text-[var(--brand-navy)]">{doc.name}</h2>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-2xl font-semibold text-[var(--brand-navy)]">{doc.name}</h2>
+              <span className="status-pill">{doc.status_badge}</span>
+              <span className="compliance-pill">{compliance}</span>
+            </div>
             <p className="text-sm text-slate-600">{doc.issuer}</p>
             <p className="mt-1 font-mono text-xs text-slate-500">{doc.code}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="status-pill">{doc.status_badge}</span>
-            <span className="compliance-pill">{compliance}</span>
+          <div className="flex items-center gap-4 text-sm font-semibold">
+            <button
+              type="button"
+              className="border-b-2 pb-1 transition-colors"
+              style={{ borderColor: activeTab === 'details' ? 'var(--accent-bg)' : 'transparent', color: activeTab === 'details' ? 'var(--brand-navy)' : 'var(--text-secondary)' }}
+              onClick={() => setActiveTab('details')}
+            >
+              Details
+            </button>
+            <button
+              type="button"
+              className="border-b-2 pb-1 transition-colors"
+              style={{ borderColor: activeTab === 'activity' ? 'var(--accent-bg)' : 'transparent', color: activeTab === 'activity' ? 'var(--brand-navy)' : 'var(--text-secondary)' }}
+              onClick={() => setActiveTab('activity')}
+            >
+              Activity History
+            </button>
           </div>
         </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <Meta label="Document Code" value={doc.code} mono />
-          <Meta label="Revision Date" value={doc.revision_date} />
-          <Meta label="Category" value={doc.categories.join(', ')} />
-          <Meta label="Locations/Departments" value={doc.locations.join(', ')} />
-          <Meta label="Format/Type" value={`${doc.format_type} / ${doc.doc_type}`} />
-          <Meta label="Audience" value={doc.audience.join(', ')} />
-        </div>
+        {activeTab === 'details' ? (
+          <>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <Meta label="Document Code" value={doc.code} mono />
+              <Meta label="Revision Date" value={doc.revision_date} />
+              <Meta label="Category" value={doc.categories.join(', ')} />
+              <Meta label="Locations/Departments" value={doc.locations.join(', ')} />
+              <Meta label="Format/Type" value={`${doc.format_type} / ${doc.doc_type}`} />
+              <Meta label="Audience" value={doc.audience.join(', ')} />
+            </div>
 
-        <div className="mt-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Notes</p>
-          <div className="rounded-[3px] border border-slate-300 bg-white p-3">
-            <p className="text-sm text-slate-700 whitespace-pre-wrap">{doc.notes?.trim() ? doc.notes : 'No notes'}</p>
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Notes</p>
+              <div className="rounded-[3px] border border-slate-300 bg-white p-3">
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">{doc.notes?.trim() ? doc.notes : 'No notes'}</p>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Hazard / Tags</p>
+              <div className="flex flex-wrap gap-1">
+                {doc.hazard_tags.length ? doc.hazard_tags.map(tag => <span key={tag} className="chip">{tag}</span>) : <span className="text-sm text-slate-500">No hazard tags</span>}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="mt-4">
+            {activity.length === 0 ? (
+              <p className="text-sm text-slate-500">No activity recorded for this document.</p>
+            ) : (
+              <ol className="relative border-l border-slate-200 pl-5 space-y-4">
+                {activity.map((entry) => (
+                  <li key={entry.id} className="relative">
+                    <span className={`absolute -left-[1.1rem] mt-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white ${actionColor(entry.action)}`} />
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <span className={`inline-block rounded-[3px] px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${actionBadge(entry.action)}`}>
+                        {entry.action}
+                      </span>
+                      <span className="text-sm font-medium text-slate-800">{entry.actor_name}</span>
+                      {entry.actor_email && (
+                        <span className="text-xs text-slate-500">&lt;{entry.actor_email}&gt;</span>
+                      )}
+                      <span className="ml-auto text-xs text-slate-400">{formatDate(entry.created_at)}</span>
+                    </div>
+                    {entry.note && <p className="mt-1 text-sm text-slate-600">{entry.note}</p>}
+                  </li>
+                ))}
+              </ol>
+            )}
           </div>
-        </div>
+        )}
+      </section>
 
-        <div className="mt-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Hazard / Tags</p>
-          <div className="flex flex-wrap gap-1">
-            {doc.hazard_tags.length ? doc.hazard_tags.map(tag => <span key={tag} className="chip">{tag}</span>) : <span className="text-sm text-slate-500">No hazard tags</span>}
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
+      <section className="card-shell">
+        <div className="mb-3 flex flex-wrap gap-2">
           <button type="button" className="btn-primary inline-flex items-center gap-2" onClick={handleReadAloud}>
             <Volume2 className="h-4 w-4" /> Read Aloud
           </button>
@@ -140,35 +190,6 @@ export default function DocumentDetailPage() {
           </a>
           <Link to="/" className="btn-lite">Back to Search</Link>
         </div>
-      </section>
-
-      <section className="card-shell">
-        <h3 className="mb-4 text-lg font-semibold">Activity History</h3>
-        {activity.length === 0 ? (
-          <p className="text-sm text-slate-500">No activity recorded for this document.</p>
-        ) : (
-          <ol className="relative border-l border-slate-200 pl-5 space-y-4">
-            {activity.map((entry) => (
-              <li key={entry.id} className="relative">
-                <span className={`absolute -left-[1.1rem] mt-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white ${actionColor(entry.action)}`} />
-                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                  <span className={`inline-block rounded-[3px] px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${actionBadge(entry.action)}`}>
-                    {entry.action}
-                  </span>
-                  <span className="text-sm font-medium text-slate-800">{entry.actor_name}</span>
-                  {entry.actor_email && (
-                    <span className="text-xs text-slate-500">&lt;{entry.actor_email}&gt;</span>
-                  )}
-                  <span className="ml-auto text-xs text-slate-400">{formatDate(entry.created_at)}</span>
-                </div>
-                {entry.note && <p className="mt-1 text-sm text-slate-600">{entry.note}</p>}
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
-
-      <section className="card-shell">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-lg font-semibold">Embedded PDF Viewer</h3>
           <span className="text-xs text-slate-500">{pageCount ? `${pageCount} pages` : 'Page count unavailable'}</span>
