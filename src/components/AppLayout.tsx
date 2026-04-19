@@ -280,7 +280,7 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
                 <>
                   <div className="group relative hidden sm:block">
                     <div
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border text-sm font-bold"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-[3px] border text-sm font-bold"
                       style={{ borderColor: 'var(--border-muted)', color: 'var(--text-secondary)' }}
                     >
                       <span aria-hidden="true">{userInitials}</span>
