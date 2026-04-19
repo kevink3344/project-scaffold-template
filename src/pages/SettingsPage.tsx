@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { motion } from 'motion/react'
 import { Link } from 'react-router-dom'
@@ -15,6 +15,26 @@ interface SectionProps {
   title: string
   children: React.ReactNode
   defaultOpen?: boolean
+}
+
+interface ApiUserRecord {
+  sub: string
+  given_name: string
+  family_name: string
+  email: string
+  role: string
+}
+
+interface AuthProfilePayload {
+  authenticated: boolean
+  user?: {
+    sub?: string
+    given_name?: string
+    family_name?: string
+    email?: string
+    role?: string
+    name?: string
+  }
 }
 
 function AccordionSection({ title, children, defaultOpen = false }: SectionProps) {
@@ -43,10 +63,9 @@ function AccordionSection({ title, children, defaultOpen = false }: SectionProps
 export default function SettingsPage() {
   const [thresholds, setThresholds] = useState(() => getFreshnessThresholds())
   const [themeConfig, setThemeConfigState] = useState<ThemeConfig>(() => getThemeConfig())
-  const [users, setUsers] = useState([
-    { id: 'u-1', name: 'Demo Admin', role: 'Admin', email: 'admin@demo.local' },
-    { id: 'u-2', name: 'Records Lead', role: 'Editor', email: 'records@demo.local' },
-  ])
+  const [users, setUsers] = useState<ApiUserRecord[]>([])
+  const [usersLoading, setUsersLoading] = useState(true)
+  const [usersError, setUsersError] = useState('')
 
   const paletteRows = useMemo(() => [
     { key: 'appBg', label: 'Main App Background' },
@@ -56,6 +75,70 @@ export default function SettingsPage() {
     { key: 'buttonBg', label: 'Button Background' },
     { key: 'accent', label: 'Accent Color' },
   ] as const, [])
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadUsers() {
+      setUsersLoading(true)
+      setUsersError('')
+      try {
+        const response = await fetch('/api/users', { credentials: 'include' })
+        if (response.ok) {
+          const payload = await response.json() as { users?: ApiUserRecord[] }
+          if (!mounted) return
+          setUsers(Array.isArray(payload.users) ? payload.users : [])
+          return
+        }
+
+        // Fallback: if users endpoint is unavailable (common when backend is down),
+        // still show the currently authenticated user from profile.
+        if (response.status === 502 || response.status === 503 || response.status === 504) {
+          const profileResponse = await fetch('/api/auth/profile', { credentials: 'include' })
+          if (profileResponse.ok) {
+            const profile = await profileResponse.json() as AuthProfilePayload
+            if (profile.authenticated && profile.user?.sub) {
+              if (!mounted) return
+              setUsers([{
+                sub: profile.user.sub,
+                given_name: profile.user.given_name || '',
+                family_name: profile.user.family_name || '',
+                email: profile.user.email || '',
+                role: profile.user.role || 'user',
+              }])
+              setUsersError('Users API is temporarily unavailable. Showing current signed-in user only.')
+              return
+            }
+          }
+        }
+
+        throw new Error(`Failed to load users (${response.status})`)
+      } catch (error) {
+        if (!mounted) return
+        setUsers([])
+        const message = error instanceof Error ? error.message : 'Unable to load users'
+        if (message.includes('(502)') || message.includes('(503)') || message.includes('(504)')) {
+          setUsersError('Users API is unavailable. If running locally, start the backend server with npm run dev:server.')
+        } else {
+          setUsersError(message)
+        }
+      } finally {
+        if (mounted) setUsersLoading(false)
+      }
+    }
+
+    void loadUsers()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  function formatUserName(user: ApiUserRecord): string {
+    const name = `${user.given_name || ''} ${user.family_name || ''}`.trim()
+    if (name) return name
+    if (user.email) return user.email
+    return user.sub
+  }
 
   function saveThresholds() {
     setFreshnessThresholds(thresholds)
@@ -113,6 +196,8 @@ export default function SettingsPage() {
       </AccordionSection>
 
       <AccordionSection title="Manage Users" defaultOpen>
+        {usersLoading && <p className="text-sm text-slate-600">Loading users...</p>}
+        {usersError && <p className="text-sm font-semibold text-red-700">{usersError}</p>}
         <div className="overflow-x-auto rounded-[3px] border border-slate-300">
           <table className="w-full min-w-[580px] text-sm">
             <thead>
@@ -120,26 +205,23 @@ export default function SettingsPage() {
                 <th className="px-3 py-2">Name</th>
                 <th className="px-3 py-2">Role</th>
                 <th className="px-3 py-2">Email</th>
-                <th className="px-3 py-2"></th>
+                <th className="px-3 py-2">Subject ID</th>
               </tr>
             </thead>
             <tbody>
               {users.map(user => (
-                <tr key={user.id} className="border-b border-slate-100">
-                  <td className="px-3 py-2">{user.name}</td>
+                <tr key={user.sub} className="border-b border-slate-100">
+                  <td className="px-3 py-2">{formatUserName(user)}</td>
                   <td className="px-3 py-2">{user.role}</td>
-                  <td className="px-3 py-2">{user.email}</td>
-                  <td className="px-3 py-2 text-right">
-                    <button
-                      type="button"
-                      className="btn-lite text-red-700"
-                      onClick={() => setUsers(prev => prev.filter(item => item.id !== user.id))}
-                    >
-                      Remove
-                    </button>
-                  </td>
+                  <td className="px-3 py-2">{user.email || '-'}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{user.sub}</td>
                 </tr>
               ))}
+              {!usersLoading && !usersError && users.length === 0 && (
+                <tr>
+                  <td className="px-3 py-3 text-slate-600" colSpan={4}>No users found.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
