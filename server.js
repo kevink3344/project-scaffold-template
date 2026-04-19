@@ -13,10 +13,18 @@ const distDir = path.join(__dirname, 'dist')
 // ---------------------------------------------------------------------------
 
 const DEV_MODE = process.env.DEV_MODE === 'true'
+const TURSO_DB_URL = process.env.TURSO_DB_URL
+const TURSO_DB_TOKEN = process.env.TURSO_DB_TOKEN
+
+if (!TURSO_DB_URL) {
+  throw new Error(
+    'Missing TURSO_DB_URL. Configure the Azure App Service application setting TURSO_DB_URL, or set it in the local environment before starting server.js.'
+  )
+}
 
 const db = createClient({
-  url:       process.env.TURSO_DB_URL,
-  authToken: process.env.TURSO_DB_TOKEN,
+  url: TURSO_DB_URL,
+  authToken: TURSO_DB_TOKEN,
 })
 
 await db.executeMultiple(`
@@ -58,7 +66,7 @@ function rowsToObjs(resultSet) {
 }
 
 // ---------------------------------------------------------------------------
-// Outbound webhook — fires to Power Automate when a new user is created
+// Outbound webhook ï¿½ fires to Power Automate when a new user is created
 // ---------------------------------------------------------------------------
 
 const PA_NEW_USER_WEBHOOK_URL = process.env.PA_NEW_USER_WEBHOOK_URL || ''
@@ -292,7 +300,7 @@ const server = http.createServer(async (req, res) => {
     return
   }
 
-  // Dev login — only available when DEV_MODE=true
+  // Dev login ï¿½ only available when DEV_MODE=true
   if (DEV_MODE && url.pathname === '/api/dev/login' && req.method === 'POST') {
     try {
       const body = await readJsonBody(req)
@@ -339,7 +347,7 @@ const server = http.createServer(async (req, res) => {
     return
   }
 
-  // Auth profile — upserts user into Turso DB on every authenticated call
+  // Auth profile ï¿½ upserts user into Turso DB on every authenticated call
   if (url.pathname === '/api/auth/profile') {
     let profile
 
@@ -379,7 +387,7 @@ const server = http.createServer(async (req, res) => {
     return
   }
 
-  // Webhook test — sends a sample payload to PA_NEW_USER_WEBHOOK_URL and reports back
+  // Webhook test ï¿½ sends a sample payload to PA_NEW_USER_WEBHOOK_URL and reports back
   if (url.pathname === '/api/webhooks/test' && req.method === 'POST') {
     if (!PA_NEW_USER_WEBHOOK_URL) {
       sendJson(res, 503, {

@@ -231,9 +231,7 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
             </div>
           ) : (
             <div className="login-section">
-              <button className="btn" onClick={handleLogin}>
-                Sign in with Rapid Identity
-              </button>
+              <button className="btn" onClick={handleLogin}>Login</button>
             </div>
           )}
         </div>
