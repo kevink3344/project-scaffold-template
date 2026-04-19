@@ -100,6 +100,417 @@ const SEEDED_DOCUMENTS = [
   },
 ]
 
+const CATEGORY_SEED_DOCUMENTS = [
+  {
+    id: 'doc-seed-hr-1',
+    name: 'New Hire Onboarding Checklist',
+    issuer: 'Human Resources',
+    code: 'HR-ONB-101',
+    revision_date: '2025-02-18',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Checklist',
+    categories: ['HR'],
+    locations: ['Corporate HQ'],
+    notes: 'Used during first-week onboarding with manager sign-off.',
+    hazard_tags: [],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['HR Team', 'Managers'],
+  },
+  {
+    id: 'doc-seed-hr-2',
+    name: 'Remote Work Eligibility Policy',
+    issuer: 'Human Resources',
+    code: 'HR-POL-204',
+    revision_date: '2024-12-06',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Policy',
+    categories: ['HR'],
+    locations: ['All Sites'],
+    notes: 'Defines hybrid scheduling and home office requirements.',
+    hazard_tags: [],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['All Staff'],
+  },
+  {
+    id: 'doc-seed-hr-3',
+    name: 'Annual Performance Review SOP',
+    issuer: 'People Operations',
+    code: 'HR-SOP-310',
+    revision_date: '2025-01-15',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'SOP',
+    categories: ['HR'],
+    locations: ['Corporate HQ', 'Regional Offices'],
+    notes: 'Step-by-step process and rating calibration guidance.',
+    hazard_tags: [],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Managers', 'HR Team'],
+  },
+  {
+    id: 'doc-seed-hr-4',
+    name: 'Employee Relations Escalation Guide',
+    issuer: 'Human Resources',
+    code: 'HR-GDE-411',
+    revision_date: '2024-10-03',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Guideline',
+    categories: ['HR'],
+    locations: ['All Sites'],
+    notes: 'Escalation matrix for conduct concerns and case tracking.',
+    hazard_tags: ['Sensitive'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['HR Team'],
+  },
+  {
+    id: 'doc-seed-fin-1',
+    name: 'Corporate Card Usage Policy',
+    issuer: 'Finance',
+    code: 'FIN-POL-120',
+    revision_date: '2025-01-29',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Policy',
+    categories: ['Finance'],
+    locations: ['All Sites'],
+    notes: 'Defines spend categories, limits, and approval workflow.',
+    hazard_tags: ['Compliance'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Department Leads', 'Finance'],
+  },
+  {
+    id: 'doc-seed-fin-2',
+    name: 'Month-End Close Checklist',
+    issuer: 'Controllership',
+    code: 'FIN-CHK-221',
+    revision_date: '2025-03-01',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Checklist',
+    categories: ['Finance'],
+    locations: ['Corporate HQ'],
+    notes: 'Runbook for accruals, reconciliations, and sign-off.',
+    hazard_tags: [],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Finance Team'],
+  },
+  {
+    id: 'doc-seed-fin-3',
+    name: 'Capital Expenditure Approval Matrix',
+    issuer: 'Finance',
+    code: 'FIN-MTX-305',
+    revision_date: '2024-11-11',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Matrix',
+    categories: ['Finance'],
+    locations: ['All Sites'],
+    notes: 'Approval thresholds by cost center and spend class.',
+    hazard_tags: ['Internal Use'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Executives', 'Finance'],
+  },
+  {
+    id: 'doc-seed-fin-4',
+    name: 'Travel Reimbursement Standard',
+    issuer: 'Finance Operations',
+    code: 'FIN-STD-418',
+    revision_date: '2025-02-02',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Standard',
+    categories: ['Finance'],
+    locations: ['All Sites'],
+    notes: 'Accepted expense classes and required receipt documentation.',
+    hazard_tags: [],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['All Staff'],
+  },
+  {
+    id: 'doc-seed-ops-1',
+    name: 'Shift Handover Procedure',
+    issuer: 'Operations',
+    code: 'OPS-SOP-105',
+    revision_date: '2025-01-20',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'SOP',
+    categories: ['Operations'],
+    locations: ['Plant 1', 'Plant 2'],
+    notes: 'Standard handover log and exception handoff process.',
+    hazard_tags: ['Operational Risk'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Operations Team'],
+  },
+  {
+    id: 'doc-seed-ops-2',
+    name: 'Equipment Downtime Escalation Plan',
+    issuer: 'Operations Excellence',
+    code: 'OPS-PLN-216',
+    revision_date: '2024-09-27',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Plan',
+    categories: ['Operations'],
+    locations: ['All Sites'],
+    notes: 'Escalation contacts and required response times by severity.',
+    hazard_tags: ['Emergency'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Operations Leads', 'Maintenance'],
+  },
+  {
+    id: 'doc-seed-ops-3',
+    name: 'Warehouse Receiving Workflow',
+    issuer: 'Operations',
+    code: 'OPS-WRK-322',
+    revision_date: '2025-02-12',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Workflow',
+    categories: ['Operations'],
+    locations: ['Warehouse A', 'Warehouse B'],
+    notes: 'Receiving, inspection, and put-away sequence.',
+    hazard_tags: ['Forklift Traffic'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Warehouse Staff'],
+  },
+  {
+    id: 'doc-seed-ops-4',
+    name: 'Service Level Monitoring Guide',
+    issuer: 'Operations Excellence',
+    code: 'OPS-GDE-433',
+    revision_date: '2024-12-19',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Guideline',
+    categories: ['Operations'],
+    locations: ['Corporate HQ'],
+    notes: 'KPI thresholds and escalation pathways for missed SLAs.',
+    hazard_tags: [],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Operations Analysts'],
+  },
+  {
+    id: 'doc-seed-leg-1',
+    name: 'Contract Review Intake Checklist',
+    issuer: 'Legal',
+    code: 'LEG-CHK-112',
+    revision_date: '2025-01-08',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Checklist',
+    categories: ['Legal'],
+    locations: ['Corporate HQ'],
+    notes: 'Required clauses and risk scoring for first-pass reviews.',
+    hazard_tags: ['Confidential'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Legal Team'],
+  },
+  {
+    id: 'doc-seed-leg-2',
+    name: 'Records Retention Schedule',
+    issuer: 'Legal Compliance',
+    code: 'LEG-STD-225',
+    revision_date: '2024-11-14',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Standard',
+    categories: ['Legal'],
+    locations: ['All Sites'],
+    notes: 'Retention timelines by document class and jurisdiction.',
+    hazard_tags: ['Regulatory'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['All Staff', 'Legal'],
+  },
+  {
+    id: 'doc-seed-leg-3',
+    name: 'NDA Execution Procedure',
+    issuer: 'Legal',
+    code: 'LEG-SOP-334',
+    revision_date: '2025-02-10',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'SOP',
+    categories: ['Legal'],
+    locations: ['Corporate HQ'],
+    notes: 'Signature authorities and record storage requirements.',
+    hazard_tags: ['Confidential'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Legal Team', 'Sales Ops'],
+  },
+  {
+    id: 'doc-seed-leg-4',
+    name: 'Regulatory Inquiry Response Playbook',
+    issuer: 'Legal Compliance',
+    code: 'LEG-PLB-447',
+    revision_date: '2024-10-22',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Playbook',
+    categories: ['Legal'],
+    locations: ['All Sites'],
+    notes: 'Response template and owner responsibilities for audits.',
+    hazard_tags: ['Regulatory', 'Sensitive'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Legal Team', 'Executives'],
+  },
+  {
+    id: 'doc-seed-saf-1',
+    name: 'PPE Inspection Checklist',
+    issuer: 'Safety Office',
+    code: 'SAF-CHK-103',
+    revision_date: '2025-03-04',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Checklist',
+    categories: ['Safety'],
+    locations: ['All Sites'],
+    notes: 'Daily inspection requirements for issued PPE.',
+    hazard_tags: ['PPE'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Safety Team', 'Supervisors'],
+  },
+  {
+    id: 'doc-seed-saf-2',
+    name: 'Incident Reporting Procedure',
+    issuer: 'Safety Office',
+    code: 'SAF-SOP-214',
+    revision_date: '2024-12-20',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'SOP',
+    categories: ['Safety'],
+    locations: ['All Sites'],
+    notes: 'Submission timelines, forms, and escalation contacts.',
+    hazard_tags: ['Emergency'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['All Staff'],
+  },
+  {
+    id: 'doc-seed-saf-3',
+    name: 'Hazard Communication Standard',
+    issuer: 'EHS Program',
+    code: 'SAF-STD-319',
+    revision_date: '2025-01-31',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Standard',
+    categories: ['Safety'],
+    locations: ['Warehouse A', 'Plant 2'],
+    notes: 'Labeling and SDS accessibility requirements.',
+    hazard_tags: ['Chemical', 'Regulatory'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Operations Team', 'Safety Team'],
+  },
+  {
+    id: 'doc-seed-saf-4',
+    name: 'Emergency Evacuation Map Guide',
+    issuer: 'Safety Office',
+    code: 'SAF-GDE-426',
+    revision_date: '2024-08-30',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Guideline',
+    categories: ['Safety'],
+    locations: ['All Sites'],
+    notes: 'Updated muster points and floor warden assignments.',
+    hazard_tags: ['Emergency'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['All Staff'],
+  },
+  {
+    id: 'doc-seed-trn-1',
+    name: 'New Supervisor Training Curriculum',
+    issuer: 'Training Office',
+    code: 'TRN-CRS-115',
+    revision_date: '2025-02-25',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Curriculum',
+    categories: ['Training'],
+    locations: ['Corporate HQ'],
+    notes: 'Core modules for leadership and compliance readiness.',
+    hazard_tags: [],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Supervisors'],
+  },
+  {
+    id: 'doc-seed-trn-2',
+    name: 'Forklift Recertification Plan',
+    issuer: 'Training Office',
+    code: 'TRN-PLN-226',
+    revision_date: '2024-11-07',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Plan',
+    categories: ['Training'],
+    locations: ['Warehouse A', 'Warehouse B'],
+    notes: 'Recertification cadence and practical assessment rubric.',
+    hazard_tags: ['Forklift Safety'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Warehouse Staff'],
+  },
+  {
+    id: 'doc-seed-trn-3',
+    name: 'Annual Compliance Training Matrix',
+    issuer: 'Training and Compliance',
+    code: 'TRN-MTX-337',
+    revision_date: '2025-01-10',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'Matrix',
+    categories: ['Training'],
+    locations: ['All Sites'],
+    notes: 'Course requirements by role and renewal date windows.',
+    hazard_tags: ['Compliance'],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['All Staff', 'Managers'],
+  },
+  {
+    id: 'doc-seed-trn-4',
+    name: 'LMS Access and Enrollment SOP',
+    issuer: 'Training Office',
+    code: 'TRN-SOP-440',
+    revision_date: '2024-09-18',
+    format_type: 'pdf',
+    status_badge: 'active',
+    status: 'active',
+    doc_type: 'SOP',
+    categories: ['Training'],
+    locations: ['All Sites'],
+    notes: 'Provisioning steps for learners and instructor cohorts.',
+    hazard_tags: [],
+    pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    audience: ['Training Team', 'IT Support'],
+  },
+]
+
 const SEEDED_DOCUMENT_TYPES = [
   {
     id: 'dtype-1',
@@ -295,6 +706,41 @@ await db.executeMultiple(`
   );
 `)
 
+async function insertSeedDocument(doc) {
+  const now = new Date().toISOString()
+  await db.execute({
+    sql: `INSERT OR IGNORE INTO documents
+          (id, name, issuer, code, revision_date, format_type, status_badge, status, doc_type, locations_json, notes, hazard_tags_json, pdf_url, audience_json, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [
+      doc.id,
+      doc.name,
+      doc.issuer,
+      doc.code,
+      doc.revision_date,
+      doc.format_type,
+      doc.status_badge,
+      doc.status,
+      doc.doc_type,
+      JSON.stringify(doc.locations),
+      doc.notes,
+      JSON.stringify(doc.hazard_tags),
+      doc.pdf_url,
+      JSON.stringify(doc.audience),
+      now,
+      now,
+    ],
+  })
+
+  for (const categoryName of doc.categories) {
+    const categoryId = await ensureCategoryByName(categoryName)
+    await db.execute({
+      sql: 'INSERT OR IGNORE INTO document_categories (document_id, category_id) VALUES (?, ?)',
+      args: [doc.id, categoryId],
+    })
+  }
+}
+
 // Seed categories if table is empty
 {
   const countResult = await db.execute('SELECT COUNT(*) as count FROM categories')
@@ -310,65 +756,48 @@ await db.executeMultiple(`
   }
 }
 
-// Seed document library data into Turso when empty
+// Seed document library data into Turso and top up category coverage
 {
   const docsCountResult = await db.execute('SELECT COUNT(*) as count FROM documents')
   const docsCount = Number(docsCountResult.rows[0][0])
 
   if (docsCount === 0) {
-    const now = new Date().toISOString()
-
     for (const doc of SEEDED_DOCUMENTS) {
-      await db.execute({
-        sql: `INSERT INTO documents
-              (id, name, issuer, code, revision_date, format_type, status_badge, status, doc_type, locations_json, notes, hazard_tags_json, pdf_url, audience_json, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [
-          doc.id,
-          doc.name,
-          doc.issuer,
-          doc.code,
-          doc.revision_date,
-          doc.format_type,
-          doc.status_badge,
-          doc.status,
-          doc.doc_type,
-          JSON.stringify(doc.locations),
-          doc.notes,
-          JSON.stringify(doc.hazard_tags),
-          doc.pdf_url,
-          JSON.stringify(doc.audience),
-          now,
-          now,
-        ],
-      })
-
-      for (const categoryName of doc.categories) {
-        let categoryId = null
-        const categoryResult = await db.execute({
-          sql: 'SELECT id FROM categories WHERE name = ?',
-          args: [categoryName],
-        })
-        if (categoryResult.rows.length > 0) {
-          categoryId = String(categoryResult.rows[0][0])
-        } else {
-          const nextOrderResult = await db.execute('SELECT COALESCE(MAX(sort_order), -1) + 1 FROM categories')
-          const nextOrder = Number(nextOrderResult.rows[0][0])
-          categoryId = `cat-${crypto.randomUUID()}`
-          await db.execute({
-            sql: 'INSERT INTO categories (id, name, sort_order) VALUES (?, ?, ?)',
-            args: [categoryId, categoryName, nextOrder],
-          })
-        }
-
-        await db.execute({
-          sql: 'INSERT OR IGNORE INTO document_categories (document_id, category_id) VALUES (?, ?)',
-          args: [doc.id, categoryId],
-        })
-      }
+      await insertSeedDocument(doc)
     }
-    console.log('[db] Seeded documents and category links.')
+    console.log('[db] Seeded baseline documents and category links.')
   }
+
+  const categorySeedMap = new Map()
+  for (const doc of CATEGORY_SEED_DOCUMENTS) {
+    for (const categoryName of doc.categories) {
+      const list = categorySeedMap.get(categoryName) || []
+      list.push(doc)
+      categorySeedMap.set(categoryName, list)
+    }
+  }
+
+  const minDocsPerCategory = 4
+  for (const categoryName of DEFAULT_CATEGORIES) {
+    const result = await db.execute({
+      sql: `SELECT COUNT(DISTINCT d.id) AS count
+            FROM documents d
+            INNER JOIN document_categories dc ON dc.document_id = d.id
+            INNER JOIN categories c ON c.id = dc.category_id
+            WHERE c.name = ?`,
+      args: [categoryName],
+    })
+    const currentCount = Number(result.rows[0][0] || 0)
+    const docsToAdd = Math.max(0, minDocsPerCategory - currentCount)
+    if (docsToAdd === 0) continue
+
+    const candidates = categorySeedMap.get(categoryName) || []
+    for (let i = 0; i < docsToAdd && i < candidates.length; i++) {
+      await insertSeedDocument(candidates[i])
+    }
+  }
+
+  console.log('[db] Ensured minimum document coverage per category.')
 }
 
 // Seed document types
