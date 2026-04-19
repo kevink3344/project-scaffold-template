@@ -71,7 +71,7 @@ export default function HomePage() {
     return recentIds
       .map(id => lookup.get(id))
       .filter((item): item is DocumentListRecord => Boolean(item))
-      .slice(0, 8)
+      .slice(0, 6)
   }, [allDocuments, recentIds])
 
   function handleVoiceSearch() {
@@ -164,13 +164,13 @@ export default function HomePage() {
       </section>
 
       {query.trim().length === 0 && recentlyViewed.length > 0 && (
-        <section className="card-shell">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-600">Recently Viewed</h3>
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-            {recentlyViewed.map(item => (
-              <Link key={item.id} to={`/documents/${item.id}`} className="rounded-[3px] border p-3 transition" style={{ borderColor: 'var(--border-muted)', background: 'var(--card-bg)' }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent-bg)')} onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border-muted)') }>
-                <p className="font-semibold">{item.name}</p>
-                <p className="text-xs text-slate-500">{item.issuer}</p>
+        <section className="card-shell py-3">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Recently Viewed</h3>
+          <div className="flex gap-1 overflow-x-auto pb-1">
+            {recentlyViewed.slice(0, 6).map(item => (
+              <Link key={item.id} to={`/documents/${item.id}`} className="flex-shrink-0 rounded-[3px] border p-2 transition w-32 truncate" style={{ borderColor: 'var(--border-muted)', background: 'var(--card-bg)' }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent-bg)')} onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border-muted)') }>
+                <p className="text-xs font-semibold truncate">{item.name}</p>
+                <p className="text-xs text-slate-500 truncate">{item.issuer}</p>
               </Link>
             ))}
           </div>
