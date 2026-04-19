@@ -81,3 +81,15 @@ export interface ThemeConfig {
   light: ThemePalette
   dark: ThemePalette
 }
+
+export type ActivityAction = 'created' | 'edited' | 'reviewed' | 'archived' | 'restored'
+
+export interface ActivityLogEntry {
+  id: string
+  document_id: string
+  action: ActivityAction
+  actor_name: string
+  actor_email: string
+  note: string
+  created_at: string
+}

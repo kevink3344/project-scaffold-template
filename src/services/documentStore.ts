@@ -1,4 +1,5 @@
 import type {
+  ActivityLogEntry,
   ComplianceStatus,
   DocumentListRecord,
   DocumentTypeRecord,
@@ -108,6 +109,28 @@ export async function getReminderNotifications(limit?: number): Promise<Reminder
   } catch {
     return []
   }
+}
+
+export async function getActivityLog(documentId?: string, limit = 50): Promise<ActivityLogEntry[]> {
+  try {
+    const params = new URLSearchParams({ limit: String(limit) })
+    if (documentId) params.set('documentId', documentId)
+    const payload = await fetchJson<{ entries: ActivityLogEntry[] }>(`/api/activity-log?${params}`)
+    return Array.isArray(payload.entries) ? payload.entries : []
+  } catch {
+    return []
+  }
+}
+
+export async function addActivityEntry(
+  documentId: string,
+  action: ActivityLogEntry['action'],
+  note = '',
+): Promise<void> {
+  await fetchJson('/api/activity-log', {
+    method: 'POST',
+    body: JSON.stringify({ document_id: documentId, action, note }),
+  })
 }
 
 export async function trackRecentlyViewed(id: string): Promise<void> {

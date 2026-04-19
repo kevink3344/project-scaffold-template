@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Download, ExternalLink, Volume2 } from 'lucide-react'
+import { Download, ExternalLink, Volume2, ClipboardCheck } from 'lucide-react'
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist'
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
-import { getComplianceStatus, getDocumentById, getFreshnessThresholds, trackRecentlyViewed } from '../services/documentStore'
-import type { DocumentListRecord, FreshnessThresholds } from '../types/documents'
+import { getComplianceStatus, getDocumentById, getFreshnessThresholds, trackRecentlyViewed, getActivityLog, addActivityEntry } from '../services/documentStore'
+import type { ActivityLogEntry, DocumentListRecord, FreshnessThresholds } from '../types/documents'
 
 GlobalWorkerOptions.workerSrc = pdfWorker
 
@@ -13,15 +13,22 @@ export default function DocumentDetailPage() {
   const [pageCount, setPageCount] = useState<number | null>(null)
   const [doc, setDoc] = useState<DocumentListRecord | null>(null)
   const [thresholds, setThresholds] = useState<FreshnessThresholds>({ currentWithinDays: 365, reviewSoonWithinDays: 730 })
+  const [activity, setActivity] = useState<ActivityLogEntry[]>([])
+  const [markingReviewed, setMarkingReviewed] = useState(false)
 
   useEffect(() => {
     let mounted = true
 
     async function loadDoc() {
-      const [documentRecord, fresh] = await Promise.all([getDocumentById(id), getFreshnessThresholds()])
+      const [documentRecord, fresh, log] = await Promise.all([
+        getDocumentById(id),
+        getFreshnessThresholds(),
+        getActivityLog(id),
+      ])
       if (!mounted) return
       setDoc(documentRecord)
       setThresholds(fresh)
+      setActivity(log)
 
       if (!documentRecord) return
       await trackRecentlyViewed(documentRecord.id).catch(() => null)
@@ -40,6 +47,18 @@ export default function DocumentDetailPage() {
       mounted = false
     }
   }, [id])
+
+  async function handleMarkReviewed() {
+    if (!doc) return
+    setMarkingReviewed(true)
+    try {
+      await addActivityEntry(doc.id, 'reviewed', 'Document reviewed — no changes required.')
+      const updated = await getActivityLog(doc.id)
+      setActivity(updated)
+    } finally {
+      setMarkingReviewed(false)
+    }
+  }
 
   if (!doc) {
     return (
@@ -104,6 +123,15 @@ export default function DocumentDetailPage() {
           <button type="button" className="btn-primary inline-flex items-center gap-2" onClick={handleReadAloud}>
             <Volume2 className="h-4 w-4" /> Read Aloud
           </button>
+          <button
+            type="button"
+            className="btn-lite inline-flex items-center gap-2"
+            onClick={handleMarkReviewed}
+            disabled={markingReviewed}
+          >
+            <ClipboardCheck className="h-4 w-4" />
+            {markingReviewed ? 'Logging…' : 'Mark Reviewed'}
+          </button>
           <a href={doc.pdf_url} target="_blank" rel="noreferrer" className="btn-lite inline-flex items-center gap-2">
             <ExternalLink className="h-4 w-4" /> Open PDF
           </a>
@@ -112,6 +140,32 @@ export default function DocumentDetailPage() {
           </a>
           <Link to="/" className="btn-lite">Back to Search</Link>
         </div>
+      </section>
+
+      <section className="card-shell">
+        <h3 className="mb-4 text-lg font-semibold">Activity History</h3>
+        {activity.length === 0 ? (
+          <p className="text-sm text-slate-500">No activity recorded for this document.</p>
+        ) : (
+          <ol className="relative border-l border-slate-200 pl-5 space-y-4">
+            {activity.map((entry) => (
+              <li key={entry.id} className="relative">
+                <span className={`absolute -left-[1.1rem] mt-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white ${actionColor(entry.action)}`} />
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <span className={`inline-block rounded-[3px] px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${actionBadge(entry.action)}`}>
+                    {entry.action}
+                  </span>
+                  <span className="text-sm font-medium text-slate-800">{entry.actor_name}</span>
+                  {entry.actor_email && (
+                    <span className="text-xs text-slate-500">&lt;{entry.actor_email}&gt;</span>
+                  )}
+                  <span className="ml-auto text-xs text-slate-400">{formatDate(entry.created_at)}</span>
+                </div>
+                {entry.note && <p className="mt-1 text-sm text-slate-600">{entry.note}</p>}
+              </li>
+            ))}
+          </ol>
+        )}
       </section>
 
       <section className="card-shell">
@@ -143,4 +197,34 @@ function Meta({ label, value, mono = false }: MetaProps) {
       <p className={`mt-1 text-sm ${mono ? 'font-mono' : ''}`}>{value}</p>
     </div>
   )
+}
+
+function formatDate(iso: string) {
+  try {
+    return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso))
+  } catch {
+    return iso
+  }
+}
+
+function actionColor(action: string) {
+  switch (action) {
+    case 'created': return 'bg-blue-500'
+    case 'edited': return 'bg-amber-400'
+    case 'reviewed': return 'bg-green-500'
+    case 'archived': return 'bg-slate-400'
+    case 'restored': return 'bg-purple-500'
+    default: return 'bg-slate-300'
+  }
+}
+
+function actionBadge(action: string) {
+  switch (action) {
+    case 'created': return 'bg-blue-100 text-blue-800'
+    case 'edited': return 'bg-amber-100 text-amber-800'
+    case 'reviewed': return 'bg-green-100 text-green-800'
+    case 'archived': return 'bg-slate-100 text-slate-600'
+    case 'restored': return 'bg-purple-100 text-purple-800'
+    default: return 'bg-slate-100 text-slate-600'
+  }
 }

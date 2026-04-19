@@ -704,6 +704,16 @@ await db.executeMultiple(`
     setting_key  TEXT PRIMARY KEY,
     setting_json TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS activity_log (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    document_id TEXT NOT NULL,
+    action      TEXT NOT NULL,
+    actor_name  TEXT NOT NULL,
+    actor_email TEXT NOT NULL DEFAULT '',
+    note        TEXT NOT NULL DEFAULT '',
+    created_at  TEXT NOT NULL
+  );
 `)
 
 async function insertSeedDocument(doc) {
@@ -848,6 +858,33 @@ async function insertSeedDocument(doc) {
   })
 }
 
+// Seed sample activity log entries (one pass only — skip if any entries exist)
+{
+  const logCount = await db.execute('SELECT COUNT(*) as count FROM activity_log')
+  if (Number(logCount.rows[0][0]) === 0) {
+    const seedEntries = [
+      { document_id: 'doc-001', action: 'created',  actor_name: 'Sarah Jenkins',  actor_email: 'sarah.jenkins@example.com',  note: 'Document uploaded and linked to Safety library.', created_at: '2025-11-20T09:14:00.000Z' },
+      { document_id: 'doc-001', action: 'reviewed', actor_name: 'Marcus Hall',    actor_email: 'marcus.hall@example.com',    note: 'Annual compliance review completed. No changes required.', created_at: '2026-01-15T14:22:00.000Z' },
+      { document_id: 'doc-001', action: 'edited',   actor_name: 'Sarah Jenkins',  actor_email: 'sarah.jenkins@example.com',  note: 'Updated PPE requirements section.', created_at: '2026-03-04T10:05:00.000Z' },
+      { document_id: 'doc-002', action: 'created',  actor_name: 'Linda Torres',   actor_email: 'linda.torres@example.com',   note: 'Policy published after legal sign-off.', created_at: '2024-08-12T08:00:00.000Z' },
+      { document_id: 'doc-002', action: 'reviewed', actor_name: 'James O\'Brien', actor_email: 'james.obrien@example.com',   note: 'Annual HR review. No revisions needed.', created_at: '2025-09-01T11:30:00.000Z' },
+      { document_id: 'doc-002', action: 'edited',   actor_name: 'Linda Torres',   actor_email: 'linda.torres@example.com',   note: 'Added remote work acknowledgement clause.', created_at: '2026-02-20T13:45:00.000Z' },
+      { document_id: 'doc-003', action: 'created',  actor_name: 'Kevin Park',     actor_email: 'kevin.park@example.com',     note: 'Initial draft uploaded for review.', created_at: '2023-03-04T16:10:00.000Z' },
+      { document_id: 'doc-003', action: 'reviewed', actor_name: 'Rachel Simmons', actor_email: 'rachel.simmons@example.com', note: 'Legal counsel reviewed. Awaiting procurement approval.', created_at: '2023-06-18T09:00:00.000Z' },
+      { document_id: 'doc-004', action: 'created',  actor_name: 'Tom Bradley',    actor_email: 'tom.bradley@example.com',    note: 'SOP published for all sites.', created_at: '2022-01-10T07:30:00.000Z' },
+      { document_id: 'doc-004', action: 'archived', actor_name: 'Tom Bradley',    actor_email: 'tom.bradley@example.com',    note: 'Superseded by SOP-OPS-052. Archived.', created_at: '2023-09-01T12:00:00.000Z' },
+    ]
+    for (const entry of seedEntries) {
+      await db.execute({
+        sql: `INSERT INTO activity_log (document_id, action, actor_name, actor_email, note, created_at)
+              VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [entry.document_id, entry.action, entry.actor_name, entry.actor_email, entry.note, entry.created_at],
+      })
+    }
+    console.log('[db] Seeded sample activity log entries.')
+  }
+}
+
 // Map a libSQL ResultSet's first row to a plain object
 function rowToObj(resultSet) {
   if (!resultSet.rows.length) return null
@@ -976,6 +1013,15 @@ async function getUserCategories(userSub) {
     args: [userSub],
   })
   return rowsToObjs(result).map((row) => String(row.name))
+}
+
+async function logActivity({ documentId, action, actorName, actorEmail = '', note = '' }) {
+  const now = new Date().toISOString()
+  await db.execute({
+    sql: `INSERT INTO activity_log (document_id, action, actor_name, actor_email, note, created_at)
+          VALUES (?, ?, ?, ?, ?, ?)`,
+    args: [documentId, action, actorName, actorEmail, note, now],
+  })
 }
 
 async function ensureCategoryByName(name) {
@@ -1512,7 +1558,22 @@ const server = http.createServer(async (req, res) => {
               GROUP BY d.id`,
         args: [id],
       })
-      sendJson(res, 200, { document: rowToDocument(rowToObj(result)) })
+      const savedDoc = rowToDocument(rowToObj(result))
+
+      // Determine whether this was a create or edit by checking created_at vs updated_at proximity
+      const ctx = await getAuthenticatedRequestContext(req, cookies)
+      const actorName = ctx?.user?.name || ctx?.user?.given_name || 'System'
+      const actorEmail = ctx?.user?.email || ''
+      const isCreate = Math.abs(new Date(savedDoc.created_at ?? now).getTime() - new Date(now).getTime()) < 2000
+      await logActivity({
+        documentId: id,
+        action: isCreate ? 'created' : 'edited',
+        actorName,
+        actorEmail,
+        note: isCreate ? 'Document created.' : 'Document metadata updated.',
+      })
+
+      sendJson(res, 200, { document: savedDoc })
     } catch {
       sendJson(res, 400, { error: 'Bad request' })
     }
@@ -1524,6 +1585,12 @@ const server = http.createServer(async (req, res) => {
     const match = url.pathname.match(/^\/api\/documents\/([^/]+)$/)
     if (match && req.method === 'DELETE') {
       const id = decodeURIComponent(match[1])
+      const nameResult = await db.execute({ sql: 'SELECT name FROM documents WHERE id = ?', args: [id] })
+      const docName = nameResult.rows.length ? String(nameResult.rows[0][0]) : id
+      const ctx = await getAuthenticatedRequestContext(req, cookies)
+      const actorName = ctx?.user?.name || ctx?.user?.given_name || 'System'
+      const actorEmail = ctx?.user?.email || ''
+      await logActivity({ documentId: id, action: 'archived', actorName, actorEmail, note: `Document "${docName}" removed from library.` })
       await db.execute({ sql: 'DELETE FROM document_categories WHERE document_id = ?', args: [id] })
       await db.execute({ sql: 'DELETE FROM documents WHERE id = ?', args: [id] })
       sendJson(res, 200, { deleted: id })
@@ -1542,6 +1609,48 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/api/version-history' && req.method === 'GET') {
     const result = await db.execute('SELECT * FROM document_version_history ORDER BY date_modified DESC')
     sendJson(res, 200, { versionHistory: rowsToObjs(result) })
+    return
+  }
+
+  // GET /api/activity-log?documentId=&limit=
+  if (url.pathname === '/api/activity-log' && req.method === 'GET') {
+    const documentId = url.searchParams.get('documentId')
+    const limit = Math.max(1, Math.min(200, Number(url.searchParams.get('limit') || 50)))
+    let result
+    if (documentId) {
+      result = await db.execute({
+        sql: 'SELECT * FROM activity_log WHERE document_id = ? ORDER BY created_at DESC LIMIT ?',
+        args: [documentId, limit],
+      })
+    } else {
+      result = await db.execute({
+        sql: 'SELECT * FROM activity_log ORDER BY created_at DESC LIMIT ?',
+        args: [limit],
+      })
+    }
+    sendJson(res, 200, { entries: rowsToObjs(result) })
+    return
+  }
+
+  // POST /api/activity-log (manual audit entry, e.g. reviewed)
+  if (url.pathname === '/api/activity-log' && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req)
+      const documentId = String(body.document_id || '').trim()
+      const action = String(body.action || '').trim()
+      const note = String(body.note || '').trim()
+      if (!documentId || !action) {
+        sendJson(res, 400, { error: 'document_id and action are required' })
+        return
+      }
+      const ctx = await getAuthenticatedRequestContext(req, cookies)
+      const actorName = ctx?.user?.name || ctx?.user?.given_name || 'System'
+      const actorEmail = ctx?.user?.email || ''
+      await logActivity({ documentId, action, actorName, actorEmail, note })
+      sendJson(res, 201, { logged: true })
+    } catch {
+      sendJson(res, 400, { error: 'Bad request' })
+    }
     return
   }
 
