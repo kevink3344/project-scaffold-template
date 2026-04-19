@@ -134,7 +134,7 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
       <header className="app-header">
         <Link to="/" className="app-brand" aria-label="Go to Home">
           <LayoutDashboard aria-hidden="true" />
-          <span>Project Scaffold</span>
+          <span>Document Library</span>
         </Link>
         <div className="auth-section">
           <div className="header-controls">
