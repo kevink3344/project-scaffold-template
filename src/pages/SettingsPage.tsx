@@ -1,494 +1,194 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
+import { motion } from 'motion/react'
 import { Link } from 'react-router-dom'
-import { getTeamsExample, getUsersExample, type TeamRecord, type UserRecord } from '../services/api/exampleApi'
+import {
+  defaultThemeConfig,
+  getFreshnessThresholds,
+  getThemeConfig,
+  setFreshnessThresholds,
+  setThemeConfig,
+} from '../services/documentStore'
+import type { ThemeConfig } from '../types/documents'
 
-const USERS_CACHE_KEY = 'settings-users-v1'
-const TEAMS_CACHE_KEY = 'settings-teams-v1'
-
-interface UserFormState {
-  name: string
-  email: string
-  role: string
-  teamSubscriptions: string[]
+interface SectionProps {
+  title: string
+  children: React.ReactNode
+  defaultOpen?: boolean
 }
 
-interface TeamFormState {
-  name: string
-  description: string
-}
+function AccordionSection({ title, children, defaultOpen = false }: SectionProps) {
+  const [open, setOpen] = useState(defaultOpen)
 
-function readCache<T>(key: string): T[] {
-  const raw = localStorage.getItem(key)
-  if (!raw) {
-    return []
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as unknown
-    return Array.isArray(parsed) ? (parsed as T[]) : []
-  } catch {
-    return []
-  }
-}
-
-function nowIso(): string {
-  return new Date().toISOString()
-}
-
-function normalizeUsers(users: UserRecord[]): UserRecord[] {
-  return users.map(user => ({
-    ...user,
-    team_subscriptions: Array.isArray(user.team_subscriptions) ? user.team_subscriptions : [],
-  }))
+  return (
+    <section className="card-shell overflow-hidden p-0">
+      <button type="button" className="flex w-full items-center justify-between border-b border-slate-200 px-4 py-3 text-left" onClick={() => setOpen(prev => !prev)}>
+        <span className="font-semibold">{title}</span>
+        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown className="h-4 w-4" />
+        </motion.span>
+      </button>
+      <motion.div
+        initial={false}
+        animate={{ height: open ? 'auto' : 0, opacity: open ? 1 : 0 }}
+        transition={{ duration: 0.25 }}
+        className="overflow-hidden"
+      >
+        <div className="space-y-3 p-4">{children}</div>
+      </motion.div>
+    </section>
+  )
 }
 
 export default function SettingsPage() {
-  const [users, setUsers] = useState<UserRecord[]>([])
-  const [teams, setTeams] = useState<TeamRecord[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [thresholds, setThresholds] = useState(() => getFreshnessThresholds())
+  const [themeConfig, setThemeConfigState] = useState<ThemeConfig>(() => getThemeConfig())
+  const [users, setUsers] = useState([
+    { id: 'u-1', name: 'Demo Admin', role: 'Admin', email: 'admin@demo.local' },
+    { id: 'u-2', name: 'Records Lead', role: 'Editor', email: 'records@demo.local' },
+  ])
 
-  const [isUsersOpen, setIsUsersOpen] = useState(true)
-  const [isTeamsOpen, setIsTeamsOpen] = useState(true)
+  const paletteRows = useMemo(() => [
+    { key: 'appBg', label: 'Main App Background' },
+    { key: 'headerBg', label: 'Header Background' },
+    { key: 'menuBg', label: 'Menu Background' },
+    { key: 'cardBg', label: 'Card Background' },
+    { key: 'buttonBg', label: 'Button Background' },
+    { key: 'accent', label: 'Accent Color' },
+  ] as const, [])
 
-  const [editingUserId, setEditingUserId] = useState<number | null>(null)
-  const [editingTeamId, setEditingTeamId] = useState<number | null>(null)
-
-  const [userForm, setUserForm] = useState<UserFormState>({
-    name: '',
-    email: '',
-    role: '',
-    teamSubscriptions: [],
-  })
-  const [teamForm, setTeamForm] = useState<TeamFormState>({ name: '', description: '' })
-
-  const [usersError, setUsersError] = useState('')
-  const [teamsError, setTeamsError] = useState('')
-
-  useEffect(() => {
-    async function loadSettingsData() {
-      setIsLoading(true)
-      setError('')
-
-      const cachedUsers = normalizeUsers(readCache<UserRecord>(USERS_CACHE_KEY))
-      const cachedTeams = readCache<TeamRecord>(TEAMS_CACHE_KEY)
-
-      if (cachedUsers.length > 0 || cachedTeams.length > 0) {
-        setUsers(cachedUsers)
-        setTeams(cachedTeams)
-        setIsLoading(false)
-        return
-      }
-
-      try {
-        const [usersResponse, teamsResponse] = await Promise.all([
-          getUsersExample(),
-          getTeamsExample(),
-        ])
-
-        const normalizedUsers = normalizeUsers(usersResponse.users)
-        setUsers(normalizedUsers)
-        setTeams(teamsResponse.teams)
-
-        localStorage.setItem(USERS_CACHE_KEY, JSON.stringify(normalizedUsers))
-        localStorage.setItem(TEAMS_CACHE_KEY, JSON.stringify(teamsResponse.teams))
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unable to load settings data.'
-        setError(message)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    void loadSettingsData()
-  }, [])
-
-  const sortedUsers = useMemo(() => [...users].sort((a, b) => a.id - b.id), [users])
-  const sortedTeams = useMemo(() => [...teams].sort((a, b) => a.id - b.id), [teams])
-
-  function persistUsers(nextUsers: UserRecord[]) {
-    setUsers(nextUsers)
-    localStorage.setItem(USERS_CACHE_KEY, JSON.stringify(nextUsers))
+  function saveThresholds() {
+    setFreshnessThresholds(thresholds)
+    window.alert('Freshness thresholds saved.')
   }
 
-  function persistTeams(nextTeams: TeamRecord[]) {
-    setTeams(nextTeams)
-    localStorage.setItem(TEAMS_CACHE_KEY, JSON.stringify(nextTeams))
-  }
-
-  function resetUserForm() {
-    setUserForm({ name: '', email: '', role: '', teamSubscriptions: [] })
-    setEditingUserId(null)
-  }
-
-  function resetTeamForm() {
-    setTeamForm({ name: '', description: '' })
-    setEditingTeamId(null)
-  }
-
-  function getUserTeamLabels(user: UserRecord): string {
-    if (!user.team_subscriptions.length) {
-      return 'None'
-    }
-
-    return user.team_subscriptions
-      .map(teamId => sortedTeams.find(team => team.id === teamId)?.name ?? `#${teamId}`)
-      .join(', ')
-  }
-
-  function handleSubmitUser(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setUsersError('')
-
-    const name = userForm.name.trim()
-    const email = userForm.email.trim()
-    const role = userForm.role.trim()
-    const selectedTeamIds = userForm.teamSubscriptions.map(value => Number(value))
-
-    if (!name || !email || !role) {
-      setUsersError('Name, email, and role are required.')
-      return
-    }
-
-    if (selectedTeamIds.some(teamId => !sortedTeams.some(team => team.id === teamId))) {
-      setUsersError('Team Subscription contains invalid team ids.')
-      return
-    }
-
-    if (editingUserId !== null) {
-      const updatedUsers = users.map(user => (
-        user.id === editingUserId
-          ? {
-            ...user,
-            name,
-            email,
-            role,
-            team_subscriptions: selectedTeamIds,
-            date_modified: nowIso(),
-          }
-          : user
-      ))
-      persistUsers(updatedUsers)
-      resetUserForm()
-      return
-    }
-
-    const nextId = users.length === 0 ? 1 : Math.max(...users.map(user => user.id)) + 1
-    const timestamp = nowIso()
-
-    const nextUser: UserRecord = {
-      id: nextId,
-      name,
-      email,
-      role,
-      date_created: timestamp,
-      date_modified: timestamp,
-      team_subscriptions: selectedTeamIds,
-    }
-
-    persistUsers([...users, nextUser])
-    resetUserForm()
-  }
-
-  function handleEditUser(user: UserRecord) {
-    setUsersError('')
-    setEditingUserId(user.id)
-    setUserForm({
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      teamSubscriptions: user.team_subscriptions.map(String),
-    })
-  }
-
-  function handleDeleteUser(userId: number) {
-    setUsersError('')
-
-    const updatedUsers = users.filter(user => user.id !== userId)
-    persistUsers(updatedUsers)
-
-    if (editingUserId === userId) {
-      resetUserForm()
-    }
-  }
-
-  function handleSubmitTeam(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setTeamsError('')
-
-    const name = teamForm.name.trim()
-    const description = teamForm.description.trim()
-
-    if (!name || !description) {
-      setTeamsError('Name and description are required.')
-      return
-    }
-
-    if (editingTeamId !== null) {
-      const updatedTeams = teams.map(team => (
-        team.id === editingTeamId
-          ? { ...team, name, description }
-          : team
-      ))
-      persistTeams(updatedTeams)
-      resetTeamForm()
-      return
-    }
-
-    const nextId = teams.length === 0 ? 1 : Math.max(...teams.map(team => team.id)) + 1
-    const nextTeam: TeamRecord = {
-      id: nextId,
-      name,
-      description,
-    }
-
-    persistTeams([...teams, nextTeam])
-    resetTeamForm()
-  }
-
-  function handleEditTeam(team: TeamRecord) {
-    setTeamsError('')
-    setEditingTeamId(team.id)
-    setTeamForm({
-      name: team.name,
-      description: team.description,
-    })
-  }
-
-  function handleDeleteTeam(teamId: number) {
-    setTeamsError('')
-
-    const updatedTeams = teams.filter(team => team.id !== teamId)
-    persistTeams(updatedTeams)
-
-    const updatedUsers = users.map(user => ({
-      ...user,
-      team_subscriptions: user.team_subscriptions.filter(subscriptionId => subscriptionId !== teamId),
-      date_modified: user.team_subscriptions.includes(teamId) ? nowIso() : user.date_modified,
-    }))
-    persistUsers(updatedUsers)
-
-    if (editingTeamId === teamId) {
-      resetTeamForm()
-    }
+  function saveTheme() {
+    setThemeConfig(themeConfig)
+    const root = document.documentElement
+    root.style.setProperty('--app-bg', themeConfig.light.appBg)
+    root.style.setProperty('--header-bg', themeConfig.light.headerBg)
+    root.style.setProperty('--menu-bg', themeConfig.light.menuBg)
+    root.style.setProperty('--card-bg', themeConfig.light.cardBg)
+    root.style.setProperty('--button-bg', themeConfig.light.buttonBg)
+    root.style.setProperty('--accent-bg', themeConfig.light.accent)
+    window.alert('Theme palette saved.')
   }
 
   return (
-    <div className="settings-page">
-      <header className="playground-header">
+    <div className="space-y-4">
+      <section className="card-shell flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="playground-title">Settings</h1>
-          <p className="playground-subtitle">Manage users and teams with inline CRUD tools.</p>
+          <h2 className="text-xl font-semibold text-[var(--brand-navy)]">Admin Settings</h2>
+          <p className="text-sm text-slate-600">All settings are grouped into collapsible sections.</p>
         </div>
-        <div className="notifications-actions">
-          <Link to="/" className="btn btn-secondary">Back Home</Link>
-          <Link to="/api-playground" className="btn">API Playground</Link>
+      </section>
+
+      <AccordionSection title="Freshness Thresholds" defaultOpen>
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="space-y-1 text-sm font-semibold">
+            <span>Green = current within X days</span>
+            <input
+              type="number"
+              className="input-shell"
+              value={thresholds.currentWithinDays}
+              onChange={(event) => setThresholds(prev => ({ ...prev, currentWithinDays: Number(event.target.value) || 0 }))}
+            />
+          </label>
+          <label className="space-y-1 text-sm font-semibold">
+            <span>Yellow = review soon within X days</span>
+            <input
+              type="number"
+              className="input-shell"
+              value={thresholds.reviewSoonWithinDays}
+              onChange={(event) => setThresholds(prev => ({ ...prev, reviewSoonWithinDays: Number(event.target.value) || 0 }))}
+            />
+          </label>
         </div>
-      </header>
+        <button type="button" className="btn-primary" onClick={saveThresholds}>Save Thresholds</button>
+      </AccordionSection>
 
-      {isLoading && <p className="notification-preview-state">Loading settings data...</p>}
-      {error && <p className="playground-error">{error}</p>}
+      <AccordionSection title="Compliance Dashboard Link" defaultOpen>
+        <p className="text-sm text-slate-600">Open the compliance dashboard to review aging documents and category coverage.</p>
+        <Link to="/admin/compliance" className="btn-lite inline-flex">Go to Compliance Dashboard</Link>
+      </AccordionSection>
 
-      {!isLoading && !error && (
-        <main className="settings-panels">
-          <section className="settings-panel">
-            <button
-              type="button"
-              className="settings-panel-toggle"
-              onClick={() => setIsUsersOpen(prev => !prev)}
-            >
-              <span>Users</span>
-              {isUsersOpen
-                ? <ChevronUp className="settings-chevron" aria-hidden="true" />
-                : <ChevronDown className="settings-chevron" aria-hidden="true" />}
-            </button>
-
-            {isUsersOpen && (
-              <div className="settings-panel-content">
-                <form className="settings-form" onSubmit={handleSubmitUser}>
-                  <h3>{editingUserId !== null ? 'Edit User' : 'Add User'}</h3>
-                  <div className="form-group">
-                    <label htmlFor="user-name">Name</label>
-                    <input
-                      id="user-name"
-                      type="text"
-                      value={userForm.name}
-                      onChange={(event) => setUserForm(prev => ({ ...prev, name: event.target.value }))}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="user-email">Email</label>
-                    <input
-                      id="user-email"
-                      type="email"
-                      value={userForm.email}
-                      onChange={(event) => setUserForm(prev => ({ ...prev, email: event.target.value }))}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="user-role">Role</label>
-                    <input
-                      id="user-role"
-                      type="text"
-                      value={userForm.role}
-                      onChange={(event) => setUserForm(prev => ({ ...prev, role: event.target.value }))}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="user-teams">Team Subcription</label>
-                    <select
-                      id="user-teams"
-                      multiple
-                      value={userForm.teamSubscriptions}
-                      onChange={(event) => {
-                        const selectedValues = Array.from(event.target.selectedOptions, option => option.value)
-                        setUserForm(prev => ({ ...prev, teamSubscriptions: selectedValues }))
-                      }}
+      <AccordionSection title="Manage Users" defaultOpen>
+        <div className="overflow-x-auto rounded-[3px] border border-slate-300">
+          <table className="w-full min-w-[580px] text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50 text-left">
+                <th className="px-3 py-2">Name</th>
+                <th className="px-3 py-2">Role</th>
+                <th className="px-3 py-2">Email</th>
+                <th className="px-3 py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(user => (
+                <tr key={user.id} className="border-b border-slate-100">
+                  <td className="px-3 py-2">{user.name}</td>
+                  <td className="px-3 py-2">{user.role}</td>
+                  <td className="px-3 py-2">{user.email}</td>
+                  <td className="px-3 py-2 text-right">
+                    <button
+                      type="button"
+                      className="btn-lite text-red-700"
+                      onClick={() => setUsers(prev => prev.filter(item => item.id !== user.id))}
                     >
-                      {sortedTeams.map(team => (
-                        <option key={team.id} value={String(team.id)}>
-                          {team.name}
-                        </option>
-                      ))}
-                    </select>
-                    <small className="form-text">Hold Ctrl/Cmd to select multiple teams.</small>
-                  </div>
-
-                  {usersError && <p className="playground-error">{usersError}</p>}
-
-                  <div className="settings-form-actions">
-                    <button className="btn" type="submit">
-                      {editingUserId !== null ? 'Update User' : 'Create User'}
+                      Remove
                     </button>
-                    {editingUserId !== null && (
-                      <button className="btn btn-secondary" type="button" onClick={resetUserForm}>
-                        Cancel
-                      </button>
-                    )}
-                  </div>
-                </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </AccordionSection>
 
-                <div className="playground-table-wrap">
-                  <table className="playground-users-table settings-table">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Team Subcription</th>
-                        <th>Date Created</th>
-                        <th>Date Modified</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedUsers.map(user => (
-                        <tr key={user.id}>
-                          <td>{user.id}</td>
-                          <td>{user.name}</td>
-                          <td>{user.email}</td>
-                          <td>{user.role}</td>
-                          <td>{getUserTeamLabels(user)}</td>
-                          <td>{user.date_created}</td>
-                          <td>{user.date_modified}</td>
-                          <td>
-                            <div className="settings-row-actions">
-                              <button className="btn btn-secondary" type="button" onClick={() => handleEditUser(user)}>Edit</button>
-                              <button className="btn btn-danger" type="button" onClick={() => handleDeleteUser(user.id)}>Delete</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </section>
-
-          <section className="settings-panel">
-            <button
-              type="button"
-              className="settings-panel-toggle"
-              onClick={() => setIsTeamsOpen(prev => !prev)}
-            >
-              <span>Teams</span>
-              {isTeamsOpen
-                ? <ChevronUp className="settings-chevron" aria-hidden="true" />
-                : <ChevronDown className="settings-chevron" aria-hidden="true" />}
-            </button>
-
-            {isTeamsOpen && (
-              <div className="settings-panel-content">
-                <form className="settings-form" onSubmit={handleSubmitTeam}>
-                  <h3>{editingTeamId !== null ? 'Edit Team' : 'Add Team'}</h3>
-                  <div className="form-group">
-                    <label htmlFor="team-name">Name</label>
-                    <input
-                      id="team-name"
-                      type="text"
-                      value={teamForm.name}
-                      onChange={(event) => setTeamForm(prev => ({ ...prev, name: event.target.value }))}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="team-description">Description</label>
-                    <input
-                      id="team-description"
-                      type="text"
-                      value={teamForm.description}
-                      onChange={(event) => setTeamForm(prev => ({ ...prev, description: event.target.value }))}
-                    />
-                  </div>
-
-                  {teamsError && <p className="playground-error">{teamsError}</p>}
-
-                  <div className="settings-form-actions">
-                    <button className="btn" type="submit">
-                      {editingTeamId !== null ? 'Update Team' : 'Create Team'}
-                    </button>
-                    {editingTeamId !== null && (
-                      <button className="btn btn-secondary" type="button" onClick={resetTeamForm}>
-                        Cancel
-                      </button>
-                    )}
-                  </div>
-                </form>
-
-                <div className="playground-table-wrap">
-                  <table className="playground-users-table settings-table teams-table">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedTeams.map(team => (
-                        <tr key={team.id}>
-                          <td>{team.id}</td>
-                          <td>{team.name}</td>
-                          <td>{team.description}</td>
-                          <td>
-                            <div className="settings-row-actions">
-                              <button className="btn btn-secondary" type="button" onClick={() => handleEditTeam(team)}>Edit</button>
-                              <button className="btn btn-danger" type="button" onClick={() => handleDeleteTeam(team.id)}>Delete</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </section>
-        </main>
-      )}
+      <AccordionSection title="Theme Palette (Light & Dark)">
+        <p className="text-sm text-slate-600">Users can theme main app, header, menu, cards, and buttons for each mode.</p>
+        <div className="grid gap-4 xl:grid-cols-2">
+          <ThemeEditor
+            title="Light Theme"
+            palette={themeConfig.light}
+            rows={paletteRows}
+            onChange={(key, value) => setThemeConfigState(prev => ({ ...prev, light: { ...prev.light, [key]: value } }))}
+          />
+          <ThemeEditor
+            title="Dark Theme"
+            palette={themeConfig.dark}
+            rows={paletteRows}
+            onChange={(key, value) => setThemeConfigState(prev => ({ ...prev, dark: { ...prev.dark, [key]: value } }))}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="button" className="btn-primary" onClick={saveTheme}>Save Theme</button>
+          <button type="button" className="btn-lite" onClick={() => setThemeConfigState(defaultThemeConfig)}>Reset</button>
+        </div>
+      </AccordionSection>
     </div>
+  )
+}
+
+interface ThemeEditorProps {
+  title: string
+  palette: ThemeConfig['light']
+  rows: ReadonlyArray<{ key: keyof ThemeConfig['light']; label: string }>
+  onChange: (key: keyof ThemeConfig['light'], value: string) => void
+}
+
+function ThemeEditor({ title, palette, rows, onChange }: ThemeEditorProps) {
+  return (
+    <article className="rounded-[3px] border border-slate-300 bg-white p-3">
+      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-600">{title}</h3>
+      <div className="space-y-2">
+        {rows.map(row => (
+          <label key={row.key} className="flex items-center justify-between gap-2 text-sm font-semibold">
+            <span>{row.label}</span>
+            <input type="color" value={palette[row.key]} onChange={(event) => onChange(row.key, event.target.value)} className="h-8 w-14 rounded-[3px] border border-slate-300 p-1" />
+          </label>
+        ))}
+      </div>
+    </article>
   )
 }

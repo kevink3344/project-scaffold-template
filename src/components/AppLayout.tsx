@@ -1,14 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
-import { Bell, LayoutDashboard, Moon, Settings, Sun, UserRound } from 'lucide-react'
-import { Link, Outlet } from 'react-router-dom'
-import { setAuthToken, clearAuthToken } from '../services/api/client'
-import { login as oidcLogin, logout as oidcLogout, getStoredUser, getSessionUser, getAccessToken, type OidcUser } from '../services/auth'
-import type { NotificationRecord } from '../services/api/exampleApi'
-import {
-  getCachedNotifications,
-  loadNotificationsFeed,
-  markNotificationAsRead,
-} from '../services/api/notificationsStore'
+import { useEffect, useMemo, useState } from 'react'
+import { BookOpenText, LayoutDashboard, Library, Menu, Moon, Settings, ShieldCheck, Sun, Upload, UserRound } from 'lucide-react'
+import { motion } from 'motion/react'
+import { Link, NavLink, Outlet } from 'react-router-dom'
+import { clearAuthToken } from '../services/api/client'
+import { getSessionUser, getStoredUser, login as oidcLogin, logout as oidcLogout, type OidcUser } from '../services/auth'
 
 type ThemeMode = 'light' | 'dark'
 
@@ -18,226 +13,107 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutProps) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [user, setUser] = useState<OidcUser | null>(() => getStoredUser())
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
-  const [notifications, setNotifications] = useState<NotificationRecord[]>([])
-  const [notificationsError, setNotificationsError] = useState('')
-  const [isNotificationsLoading, setIsNotificationsLoading] = useState(false)
-  const profileMenuRef = useRef<HTMLDivElement | null>(null)
-
   const isDarkMode = themeMode === 'dark'
-  const notificationsPreview = notifications.slice(0, 3)
-  const unreadCount = notifications.filter(item => !item.is_read).length
-  const hasUserProfileClaims = Boolean(
-    user && (
-      (user.email && user.email !== 'authenticated-user')
-      || user.given_name
-      || user.family_name
-      || (user.name && user.name !== 'authenticated-user')
-    ),
-  )
-  const userDisplayName = user
-    ? (hasUserProfileClaims ? user.name : 'Signed in user')
-    : ''
-  const userDisplayEmail = user
-    ? (hasUserProfileClaims && user.email ? user.email : 'Profile claims unavailable')
-    : ''
 
   useEffect(() => {
-    const token = getAccessToken()
-    if (token) setAuthToken(token)
-    setNotifications(getCachedNotifications())
-
-    let isMounted = true
-    getSessionUser().then(sessionUser => {
-      if (isMounted && sessionUser) {
-        setUser(sessionUser)
-      }
+    let mounted = true
+    getSessionUser().then((sessionUser) => {
+      if (mounted) setUser(sessionUser)
     })
 
     return () => {
-      isMounted = false
+      mounted = false
     }
   }, [])
 
-  useEffect(() => {
-    if (!isProfileMenuOpen) return
-
-    function handleDocumentClick(event: MouseEvent) {
-      if (!profileMenuRef.current?.contains(event.target as Node)) {
-        setIsProfileMenuOpen(false)
-      }
-    }
-
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setIsProfileMenuOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleDocumentClick)
-    document.addEventListener('keydown', handleEscape)
-
-    return () => {
-      document.removeEventListener('mousedown', handleDocumentClick)
-      document.removeEventListener('keydown', handleEscape)
-    }
-  }, [isProfileMenuOpen])
+  const navItems = useMemo(() => [
+    { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/recent', label: 'Recently Viewed', icon: BookOpenText },
+    { to: '/admin/library', label: 'Library', icon: Library },
+    { to: '/admin/upload', label: 'Upload', icon: Upload },
+    { to: '/admin/compliance', label: 'Compliance', icon: ShieldCheck },
+    { to: '/settings', label: 'Settings', icon: Settings },
+  ], [])
 
   function handleLogin() {
-    oidcLogin()
+    void oidcLogin()
   }
 
   function handleLogout() {
     oidcLogout()
     clearAuthToken()
     setUser(null)
-    setIsProfileMenuOpen(false)
-  }
-
-  function handleProfileMenuToggle() {
-    setIsProfileMenuOpen(prev => !prev)
-  }
-
-  async function loadNotifications() {
-    setIsNotificationsLoading(true)
-    setNotificationsError('')
-
-    try {
-      const data = await loadNotificationsFeed()
-      setNotifications(data)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to load notifications.'
-      setNotificationsError(message)
-    } finally {
-      setIsNotificationsLoading(false)
-    }
-  }
-
-  async function handleNotificationsToggle() {
-    const nextOpen = !isNotificationsOpen
-    setIsNotificationsOpen(nextOpen)
-
-    if (nextOpen && notifications.length === 0 && !isNotificationsLoading) {
-      await loadNotifications()
-    }
-  }
-
-  function handleMarkPreviewItemRead(notificationId: number) {
-    const updatedNotifications = markNotificationAsRead(notificationId)
-    setNotifications(updatedNotifications)
   }
 
   return (
-    <>
-      <header className="app-header">
-        <Link to="/" className="app-brand" aria-label="Go to Home">
-          <LayoutDashboard aria-hidden="true" />
-          <span>Document Library</span>
-        </Link>
-        <div className="auth-section">
-          <div className="header-controls">
-            <Link
-              to="/settings"
-              className="icon-btn"
-              aria-label="Settings"
-              title="Settings"
-            >
-              <Settings aria-hidden="true" />
-            </Link>
-            <div className="notification-menu">
-              <button
-                type="button"
-                className="icon-btn notification-icon-btn"
-                aria-label="Notifications"
-                title="Notifications"
-                onClick={handleNotificationsToggle}
-              >
-                <Bell aria-hidden="true" />
-                {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
+    <div className="min-h-screen bg-[var(--app-bg)] text-slate-900 dark:text-slate-100">
+      <div className="flex min-h-screen">
+        <motion.aside
+          animate={{ width: sidebarCollapsed ? 88 : 260 }}
+          transition={{ duration: 0.25 }}
+          className="border-r border-slate-200/90 bg-[var(--menu-bg)]"
+        >
+          <div className="flex h-full flex-col">
+            <div className="flex items-center justify-between border-b border-slate-200 p-3">
+              <Link to="/" className="flex items-center gap-2">
+                <Library className="h-6 w-6 text-[var(--accent-bg)]" />
+                {!sidebarCollapsed && <span className="text-sm font-semibold uppercase tracking-wide">Document Library</span>}
+              </Link>
+              <button type="button" className="btn-lite" onClick={() => setSidebarCollapsed(prev => !prev)}>
+                <Menu className="h-4 w-4" />
               </button>
-
-              {isNotificationsOpen && (
-                <div className="notification-preview">
-                  <div className="notification-preview-header">
-                    <h3>Notifications</h3>
-                    <Link to="/notifications" onClick={() => setIsNotificationsOpen(false)}>View all</Link>
-                  </div>
-
-                  {isNotificationsLoading && <p className="notification-preview-state">Loading...</p>}
-                  {notificationsError && <p className="notification-preview-error">{notificationsError}</p>}
-
-                  {!isNotificationsLoading && !notificationsError && notificationsPreview.length === 0 && (
-                    <p className="notification-preview-state">No notifications available.</p>
-                  )}
-
-                  {!isNotificationsLoading && !notificationsError && notificationsPreview.length > 0 && (
-                    <ul className="notification-preview-list">
-                      {notificationsPreview.map(item => (
-                        <li key={item.id} className={item.is_read ? 'is-read' : 'is-unread'}>
-                          <p className="notification-title">{item.title}</p>
-                          <p className="notification-message">{item.message}</p>
-                          {!item.is_read && (
-                            <button
-                              type="button"
-                              className="notification-action"
-                              onClick={() => handleMarkPreviewItemRead(item.id)}
-                            >
-                              Mark as read
-                            </button>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
             </div>
-            <button
-              type="button"
-              className="icon-btn theme-toggle-btn"
-              onClick={onToggleThemeMode}
-              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-              title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {isDarkMode ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
-            </button>
+
+            <nav className="flex-1 space-y-1 p-3">
+              {navItems.map(item => {
+                const Icon = item.icon
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) => `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {!sidebarCollapsed && <span>{item.label}</span>}
+                  </NavLink>
+                )
+              })}
+            </nav>
+
+            <div className="border-t border-slate-200 p-3 text-xs text-slate-600 dark:text-slate-300">
+              {!sidebarCollapsed && <p>Brutalist Enterprise Demo</p>}
+            </div>
           </div>
+        </motion.aside>
 
-          {user ? (
-            <div className="user-info" ref={profileMenuRef}>
-              <button
-                type="button"
-                className="icon-btn user-profile-btn"
-                aria-label={`Signed in as ${userDisplayName}`}
-                title={userDisplayEmail || userDisplayName}
-                aria-haspopup="menu"
-                aria-expanded={isProfileMenuOpen}
-                onClick={handleProfileMenuToggle}
-              >
-                <UserRound aria-hidden="true" />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-[var(--header-bg)] px-4 py-3">
+            <h1 className="text-lg font-semibold text-[var(--brand-navy)]">Document Library</h1>
+            <div className="flex items-center gap-2">
+              <button type="button" className="btn-lite" onClick={onToggleThemeMode} aria-label="Toggle theme">
+                {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </button>
-
-              {isProfileMenuOpen && (
-                <div className="profile-menu" role="menu" aria-label="Profile menu">
-                  <p className="profile-menu-name">{userDisplayName}</p>
-                  <p className="profile-menu-email">{userDisplayEmail}</p>
-                  <button type="button" className="btn btn-secondary profile-menu-signout" onClick={handleLogout}>
-                    Sign Out
-                  </button>
-                </div>
+              {user ? (
+                <>
+                  <div className="inline-flex items-center gap-2 rounded-[3px] border border-slate-300 px-2 py-1 text-xs">
+                    <UserRound className="h-4 w-4" />
+                    <span>{user.name || 'Signed in user'}</span>
+                  </div>
+                  <button type="button" className="btn-lite" onClick={handleLogout}>Logout</button>
+                </>
+              ) : (
+                <button type="button" className="btn-primary" onClick={handleLogin}>Login</button>
               )}
             </div>
-          ) : (
-            <div className="login-section">
-              <button className="btn" onClick={handleLogin}>Login</button>
-            </div>
-          )}
-        </div>
-      </header>
+          </header>
 
-      <Outlet />
-    </>
+          <main className="min-w-0 flex-1 p-4 md:p-6">
+            <Outlet />
+          </main>
+        </div>
+      </div>
+    </div>
   )
 }
