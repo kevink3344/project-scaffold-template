@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Download, ExternalLink, Volume2, ClipboardCheck } from 'lucide-react'
+import { Download, ExternalLink, Volume2, ClipboardCheck, FileText, History, ArrowLeft } from 'lucide-react'
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist'
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { getComplianceStatus, getDocumentById, getFreshnessThresholds, trackRecentlyViewed, getActivityLog, addActivityEntry } from '../services/documentStore'
@@ -85,8 +85,8 @@ export default function DocumentDetailPage() {
   return (
     <div className="space-y-4">
       <section className="card-shell">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1 order-2 sm:order-1">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-2xl font-semibold text-[var(--brand-navy)]">{doc.name}</h2>
               <span className="status-pill">{doc.status_badge}</span>
@@ -95,21 +95,23 @@ export default function DocumentDetailPage() {
             <p className="text-sm text-slate-600">{doc.issuer}</p>
             <p className="mt-1 font-mono text-xs text-slate-500">{doc.code}</p>
           </div>
-          <div className="flex items-center gap-4 text-sm font-semibold">
+          <div className="flex items-center gap-4 text-sm font-semibold order-1 sm:order-2">
             <button
               type="button"
-              className="border-b-2 pb-1 transition-colors"
+              className="border-b-2 pb-1 transition-colors flex items-center gap-1"
               style={{ borderColor: activeTab === 'details' ? 'var(--accent-bg)' : 'transparent', color: activeTab === 'details' ? 'var(--brand-navy)' : 'var(--text-secondary)' }}
               onClick={() => setActiveTab('details')}
             >
+              <FileText className="h-4 w-4" />
               Details
             </button>
             <button
               type="button"
-              className="border-b-2 pb-1 transition-colors"
+              className="border-b-2 pb-1 transition-colors flex items-center gap-1"
               style={{ borderColor: activeTab === 'activity' ? 'var(--accent-bg)' : 'transparent', color: activeTab === 'activity' ? 'var(--brand-navy)' : 'var(--text-secondary)' }}
               onClick={() => setActiveTab('activity')}
             >
+              <History className="h-4 w-4" />
               Activity History
             </button>
           </div>
@@ -171,7 +173,8 @@ export default function DocumentDetailPage() {
       <section className="card-shell">
         <div className="mb-3 flex flex-wrap gap-2">
           <button type="button" className="btn-primary inline-flex items-center gap-2" onClick={handleReadAloud}>
-            <Volume2 className="h-4 w-4" /> Read Aloud
+            <Volume2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Read Aloud</span>
           </button>
           <button
             type="button"
@@ -180,15 +183,20 @@ export default function DocumentDetailPage() {
             disabled={markingReviewed}
           >
             <ClipboardCheck className="h-4 w-4" />
-            {markingReviewed ? 'Logging…' : 'Mark Reviewed'}
+            <span className="hidden sm:inline">{markingReviewed ? 'Logging…' : 'Mark Reviewed'}</span>
           </button>
           <a href={doc.pdf_url} target="_blank" rel="noreferrer" className="btn-lite inline-flex items-center gap-2">
-            <ExternalLink className="h-4 w-4" /> Open PDF
+            <ExternalLink className="h-4 w-4" />
+            <span className="hidden sm:inline">Open PDF</span>
           </a>
           <a href={doc.pdf_url} download className="btn-lite inline-flex items-center gap-2">
-            <Download className="h-4 w-4" /> Download
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Download</span>
           </a>
-          <Link to="/" className="btn-lite">Back to Search</Link>
+          <Link to="/" className="btn-lite inline-flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Back to Search</span>
+          </Link>
         </div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-lg font-semibold">Embedded PDF Viewer</h3>

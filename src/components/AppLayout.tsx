@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Bell, BookOpenText, ChevronLeft, LayoutDashboard, Library, LogOut, Menu, Moon, Settings, ShieldCheck, Sun, Upload } from 'lucide-react'
+import { Bell, BookOpenText, ChevronLeft, LayoutDashboard, Library, LogOut, Menu, Moon, Settings, ShieldCheck, Sun, Upload, LogIn, User } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { clearAuthToken } from '../services/api/client'
 import { getSessionUser, getStoredUser, login as oidcLogin, logout as oidcLogout, type OidcUser } from '../services/auth'
@@ -303,7 +303,9 @@ export default function AppLayout({ themeMode, onToggleThemeMode }: AppLayoutPro
                   </button>
                 </>
               ) : (
-                <button type="button" className="btn-primary" onClick={handleLogin}>Login</button>
+                <button type="button" className="btn-lite" onClick={handleLogin} aria-label="Login" title="Login">
+                  <User className="h-4 w-4" />
+                </button>
               )}
             </div>
           </header>

@@ -62,15 +62,15 @@ export default function NotificationsPage() {
       {!isLoading && !error && notifications.length > 0 && (
         <section className="space-y-3">
           {notifications.map(notification => (
-            <article key={notification.id} className="card-shell flex flex-wrap items-start justify-between gap-3">
-              <div className="flex min-w-0 items-start gap-3">
+            <article key={notification.id} className="card-shell flex flex-col items-center gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex min-w-0 items-start gap-3 sm:flex-col">
                 <div className="mt-0.5">
                   <NotificationIcon severity={notification.severity} />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 text-center sm:text-left">
                   <p className="font-semibold">{notification.title}</p>
                   <p className="text-sm text-slate-600">{notification.message}</p>
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500 justify-center sm:justify-start">
                     <span className="chip">{notification.document_name}</span>
                     <span>Issuer: {notification.issuer}</span>
                     <span>Revision: {notification.revision_date}</span>

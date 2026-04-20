@@ -9,6 +9,8 @@ import {
   setFreshnessThresholds,
   setThemeConfig,
 } from '../services/documentStore'
+import { fetchCategories, createCategory, deleteCategory, type CategoryRecord } from '../services/api/categoriesApi'
+import { fetchDocumentTypes, createDocumentType, updateDocumentType, deleteDocumentType, type DocumentTypeRecord } from '../services/api/documentTypesApi'
 import type { ThemeConfig } from '../types/documents'
 
 interface SectionProps {
@@ -93,6 +95,17 @@ export default function SettingsPage() {
   const [userDraft, setUserDraft] = useState<EditableUserDraft | null>(null)
   const [userPanelError, setUserPanelError] = useState('')
   const [savingUser, setSavingUser] = useState(false)
+  const [categories, setCategories] = useState<CategoryRecord[]>([])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
+  const [categoriesError, setCategoriesError] = useState('')
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [creatingCategory, setCreatingCategory] = useState(false)
+  const [documentTypes, setDocumentTypes] = useState<DocumentTypeRecord[]>([])
+  const [documentTypesLoading, setDocumentTypesLoading] = useState(true)
+  const [documentTypesError, setDocumentTypesError] = useState('')
+  const [newDocumentType, setNewDocumentType] = useState({ name: '', description: '' })
+  const [creatingDocumentType, setCreatingDocumentType] = useState(false)
+  const [editingDocumentType, setEditingDocumentType] = useState<DocumentTypeRecord | null>(null)
 
   const paletteRows = useMemo(() => [
     { key: 'appBg', label: 'Main App Background' },
@@ -114,6 +127,54 @@ export default function SettingsPage() {
     }
 
     void loadSettings()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadCategories() {
+      setCategoriesLoading(true)
+      setCategoriesError('')
+      try {
+        const data = await fetchCategories()
+        if (!mounted) return
+        setCategories(data)
+      } catch (error) {
+        if (!mounted) return
+        setCategoriesError(error instanceof Error ? error.message : 'Failed to load categories')
+      } finally {
+        if (mounted) setCategoriesLoading(false)
+      }
+    }
+
+    void loadCategories()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadDocumentTypes() {
+      setDocumentTypesLoading(true)
+      setDocumentTypesError('')
+      try {
+        const data = await fetchDocumentTypes()
+        if (!mounted) return
+        setDocumentTypes(data)
+      } catch (error) {
+        if (!mounted) return
+        setDocumentTypesError(error instanceof Error ? error.message : 'Failed to load document types')
+      } finally {
+        if (mounted) setDocumentTypesLoading(false)
+      }
+    }
+
+    void loadDocumentTypes()
     return () => {
       mounted = false
     }
@@ -254,6 +315,63 @@ export default function SettingsPage() {
     window.alert('Theme palette saved.')
   }
 
+  async function createNewCategory() {
+    if (!newCategoryName.trim()) return
+    setCreatingCategory(true)
+    try {
+      const newCat = await createCategory(newCategoryName.trim())
+      setCategories(prev => [...prev, newCat])
+      setNewCategoryName('')
+    } catch (error) {
+      setCategoriesError(error instanceof Error ? error.message : 'Failed to create category')
+    } finally {
+      setCreatingCategory(false)
+    }
+  }
+
+  async function removeCategory(id: string) {
+    try {
+      await deleteCategory(id)
+      setCategories(prev => prev.filter(cat => cat.id !== id))
+    } catch (error) {
+      setCategoriesError(error instanceof Error ? error.message : 'Failed to delete category')
+    }
+  }
+
+  async function createNewDocumentType() {
+    if (!newDocumentType.name.trim() || !newDocumentType.description.trim()) return
+    setCreatingDocumentType(true)
+    try {
+      const newType = await createDocumentType(newDocumentType.name.trim(), newDocumentType.description.trim())
+      setDocumentTypes(prev => [...prev, newType])
+      setNewDocumentType({ name: '', description: '' })
+    } catch (error) {
+      setDocumentTypesError(error instanceof Error ? error.message : 'Failed to create document type')
+    } finally {
+      setCreatingDocumentType(false)
+    }
+  }
+
+  async function updateExistingDocumentType() {
+    if (!editingDocumentType) return
+    try {
+      const updated = await updateDocumentType(editingDocumentType.id, editingDocumentType.name, editingDocumentType.description)
+      setDocumentTypes(prev => prev.map(type => type.id === updated.id ? updated : type))
+      setEditingDocumentType(null)
+    } catch (error) {
+      setDocumentTypesError(error instanceof Error ? error.message : 'Failed to update document type')
+    }
+  }
+
+  async function removeDocumentType(id: string) {
+    try {
+      await deleteDocumentType(id)
+      setDocumentTypes(prev => prev.filter(type => type.id !== id))
+    } catch (error) {
+      setDocumentTypesError(error instanceof Error ? error.message : 'Failed to delete document type')
+    }
+  }
+
   return (
     <div className="space-y-4">
       <section className="card-shell flex flex-wrap items-center justify-between gap-2">
@@ -263,7 +381,7 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      <AccordionSection title="Freshness Thresholds" defaultOpen>
+      <AccordionSection title="Freshness Thresholds">
         <div className="grid gap-3 md:grid-cols-2">
           <label className="space-y-1 text-sm font-semibold">
             <span>Green = current within X days</span>
@@ -287,12 +405,130 @@ export default function SettingsPage() {
         <button type="button" className="btn-primary" onClick={saveThresholds}>Save Thresholds</button>
       </AccordionSection>
 
-      <AccordionSection title="Compliance Dashboard Link" defaultOpen>
+      <AccordionSection title="Compliance Dashboard Link">
         <p className="text-sm text-slate-600">Open the compliance dashboard to review aging documents and category coverage.</p>
         <Link to="/admin/compliance" className="btn-lite inline-flex">Go to Compliance Dashboard</Link>
       </AccordionSection>
 
-      <AccordionSection title="Manage Users" defaultOpen>
+      <AccordionSection title="Manage Categories">
+        {categoriesLoading && <p className="text-sm text-slate-600">Loading categories...</p>}
+        {categoriesError && <p className="text-sm font-semibold text-red-700">{categoriesError}</p>}
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              className="input-shell flex-1"
+              placeholder="New category name"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+            />
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={createNewCategory}
+              disabled={creatingCategory || !newCategoryName.trim()}
+            >
+              {creatingCategory ? 'Creating...' : 'Add'}
+            </button>
+          </div>
+          <div className="space-y-2">
+            {categories.map(category => (
+              <div key={category.id} className="flex items-center justify-between p-2 border border-slate-300 rounded-[3px]">
+                <span className="font-medium">{category.name}</span>
+                <button
+                  type="button"
+                  className="btn-lite text-red-600"
+                  onClick={() => removeCategory(category.id)}
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </AccordionSection>
+
+      <AccordionSection title="Manage Document Types">
+        {documentTypesLoading && <p className="text-sm text-slate-600">Loading document types...</p>}
+        {documentTypesError && <p className="text-sm font-semibold text-red-700">{documentTypesError}</p>}
+        <div className="space-y-3">
+          <div className="grid gap-2 md:grid-cols-2">
+            <input
+              type="text"
+              className="input-shell"
+              placeholder="Name"
+              value={newDocumentType.name}
+              onChange={(e) => setNewDocumentType(prev => ({ ...prev, name: e.target.value }))}
+            />
+            <input
+              type="text"
+              className="input-shell"
+              placeholder="Description"
+              value={newDocumentType.description}
+              onChange={(e) => setNewDocumentType(prev => ({ ...prev, description: e.target.value }))}
+            />
+          </div>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={createNewDocumentType}
+            disabled={creatingDocumentType || !newDocumentType.name.trim() || !newDocumentType.description.trim()}
+          >
+            {creatingDocumentType ? 'Creating...' : 'Add Document Type'}
+          </button>
+          <div className="space-y-2">
+            {documentTypes.map(type => (
+              <div key={type.id} className="p-3 border border-slate-300 rounded-[3px]">
+                {editingDocumentType?.id === type.id ? (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      className="input-shell"
+                      value={editingDocumentType.name}
+                      onChange={(e) => setEditingDocumentType(prev => prev ? { ...prev, name: e.target.value } : null)}
+                    />
+                    <input
+                      type="text"
+                      className="input-shell"
+                      value={editingDocumentType.description}
+                      onChange={(e) => setEditingDocumentType(prev => prev ? { ...prev, description: e.target.value } : null)}
+                    />
+                    <div className="flex gap-2">
+                      <button type="button" className="btn-primary" onClick={updateExistingDocumentType}>Save</button>
+                      <button type="button" className="btn-lite" onClick={() => setEditingDocumentType(null)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="font-semibold">{type.name}</h4>
+                      <p className="text-sm text-slate-600">{type.description}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="btn-lite"
+                        onClick={() => setEditingDocumentType(type)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-lite text-red-600"
+                        onClick={() => removeDocumentType(type.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </AccordionSection>
+
+      <AccordionSection title="Manage Users">
         {usersLoading && <p className="text-sm text-slate-600">Loading users...</p>}
         {usersError && <p className="text-sm font-semibold text-red-700">{usersError}</p>}
         <div className="overflow-x-auto rounded-[3px] border border-slate-300">
