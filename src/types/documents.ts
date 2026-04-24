@@ -16,7 +16,7 @@ export interface DocumentListRecord {
   notes: string
   hazard_tags: string[]
   pdf_url: string
-  audience: string[]
+  departments: string[]
 }
 
 export interface DocumentVersionHistoryRecord {

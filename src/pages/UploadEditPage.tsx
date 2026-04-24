@@ -1,6 +1,8 @@
 import { useEffect, useState, type DragEvent, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useCategories } from '../hooks/useCategories'
+import { LocationSelector } from '../components/LocationSelector'
+import { DepartmentSelector } from '../components/DepartmentSelector'
 import { getDocumentById, getDocumentTypes, upsertDocument } from '../services/documentStore'
 import type { DocumentListRecord, DocumentStatusBadge } from '../types/documents'
 
@@ -18,11 +20,11 @@ interface FormState {
   status: 'active' | 'archived'
   doc_type: string
   categories: string[]
-  locations: string
+  locations: string[]
   notes: string
   hazard_tags: string
   pdf_url: string
-  audience: string
+  departments: string[]
 }
 
 const emptyForm: FormState = {
@@ -35,11 +37,11 @@ const emptyForm: FormState = {
   status: 'active',
   doc_type: 'Policy',
   categories: [],
-  locations: '',
+  locations: [],
   notes: '',
   hazard_tags: '',
   pdf_url: '',
-  audience: '',
+  departments: [],
 }
 
 export default function UploadEditPage({ mode }: UploadEditPageProps) {
@@ -82,11 +84,11 @@ export default function UploadEditPage({ mode }: UploadEditPageProps) {
         status: item.status,
         doc_type: item.doc_type,
         categories: item.categories,
-        locations: item.locations.join(', '),
+        locations: item.locations,
         notes: item.notes,
         hazard_tags: item.hazard_tags.join(', '),
         pdf_url: item.pdf_url,
-        audience: item.audience.join(', '),
+        departments: item.departments,
       })
     }
     void loadDocument()
@@ -140,11 +142,11 @@ export default function UploadEditPage({ mode }: UploadEditPageProps) {
       status: form.status,
       doc_type: form.doc_type,
       categories: form.categories,
-      locations: form.locations.split(',').map(item => item.trim()).filter(Boolean),
+      locations: form.locations,
       notes: form.notes,
       hazard_tags: form.hazard_tags.split(',').map(item => item.trim()).filter(Boolean),
       pdf_url: form.pdf_url,
-      audience: form.audience.split(',').map(item => item.trim()).filter(Boolean),
+      departments: form.departments,
     }
 
     await upsertDocument(doc)
@@ -227,9 +229,15 @@ export default function UploadEditPage({ mode }: UploadEditPageProps) {
         </section>
 
         <section className="card-shell space-y-3">
-          <Input label="Locations (tag input, comma separated)" value={form.locations} onChange={(value) => setForm(prev => ({ ...prev, locations: value }))} />
-          <Input label="Audience (comma separated)" value={form.audience} onChange={(value) => setForm(prev => ({ ...prev, audience: value }))} />
-          <Input label="Hazard / Warning Tags (optional)" value={form.hazard_tags} onChange={(value) => setForm(prev => ({ ...prev, hazard_tags: value }))} />
+          <LocationSelector 
+            selectedLocations={form.locations} 
+            onSelectChange={(locations) => setForm(prev => ({ ...prev, locations }))}
+          />
+          <DepartmentSelector
+            selectedDepartments={form.departments}
+            onSelectChange={(departments) => setForm(prev => ({ ...prev, departments }))}
+          />
+          <Input label="Tags (optional)" value={form.hazard_tags} onChange={(value) => setForm(prev => ({ ...prev, hazard_tags: value }))} />
           <Input label="PDF URL" value={form.pdf_url} onChange={(value) => setForm(prev => ({ ...prev, pdf_url: value }))} />
           <label className="space-y-1 text-sm font-semibold">
             <span>Notes</span>

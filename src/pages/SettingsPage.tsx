@@ -10,6 +10,7 @@ import {
   setThemeConfig,
 } from '../services/documentStore'
 import { fetchCategories, createCategory, deleteCategory, type CategoryRecord } from '../services/api/categoriesApi'
+import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment, type DepartmentRecord } from '../services/api/departmentsApi'
 import { fetchDocumentTypes, createDocumentType, updateDocumentType, deleteDocumentType, type DocumentTypeRecord } from '../services/api/documentTypesApi'
 import type { ThemeConfig } from '../types/documents'
 
@@ -100,12 +101,21 @@ export default function SettingsPage() {
   const [categoriesError, setCategoriesError] = useState('')
   const [newCategoryName, setNewCategoryName] = useState('')
   const [creatingCategory, setCreatingCategory] = useState(false)
+  const [departments, setDepartments] = useState<DepartmentRecord[]>([])
+  const [departmentsLoading, setDepartmentsLoading] = useState(true)
+  const [departmentsError, setDepartmentsError] = useState('')
+  const [newDepartmentName, setNewDepartmentName] = useState('')
+  const [creatingDepartment, setCreatingDepartment] = useState(false)
+  const [editingDepartment, setEditingDepartment] = useState<DepartmentRecord | null>(null)
   const [documentTypes, setDocumentTypes] = useState<DocumentTypeRecord[]>([])
   const [documentTypesLoading, setDocumentTypesLoading] = useState(true)
   const [documentTypesError, setDocumentTypesError] = useState('')
   const [newDocumentType, setNewDocumentType] = useState({ name: '', description: '' })
   const [creatingDocumentType, setCreatingDocumentType] = useState(false)
   const [editingDocumentType, setEditingDocumentType] = useState<DocumentTypeRecord | null>(null)
+  const [locationsSyncing, setLocationsSyncing] = useState(false)
+  const [locationsError, setLocationsError] = useState('')
+  const [locationsMessage, setLocationsMessage] = useState('')
 
   const paletteRows = useMemo(() => [
     { key: 'appBg', label: 'Main App Background' },
@@ -127,6 +137,30 @@ export default function SettingsPage() {
     }
 
     void loadSettings()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadDepartments() {
+      setDepartmentsLoading(true)
+      setDepartmentsError('')
+      try {
+        const data = await fetchDepartments()
+        if (!mounted) return
+        setDepartments(data)
+      } catch (error) {
+        if (!mounted) return
+        setDepartmentsError(error instanceof Error ? error.message : 'Failed to load departments')
+      } finally {
+        if (mounted) setDepartmentsLoading(false)
+      }
+    }
+
+    void loadDepartments()
     return () => {
       mounted = false
     }
@@ -338,6 +372,46 @@ export default function SettingsPage() {
     }
   }
 
+  async function createNewDepartment() {
+    if (!newDepartmentName.trim()) return
+    setCreatingDepartment(true)
+    setDepartmentsError('')
+    try {
+      const created = await createDepartment(newDepartmentName.trim())
+      setDepartments(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)))
+      setNewDepartmentName('')
+    } catch (error) {
+      setDepartmentsError(error instanceof Error ? error.message : 'Failed to create department')
+    } finally {
+      setCreatingDepartment(false)
+    }
+  }
+
+  async function updateExistingDepartment() {
+    if (!editingDepartment) return
+    setDepartmentsError('')
+    try {
+      const updated = await updateDepartment(editingDepartment.id, editingDepartment.name)
+      setDepartments(prev => prev.map(dep => dep.id === updated.id ? updated : dep).sort((a, b) => a.name.localeCompare(b.name)))
+      setEditingDepartment(null)
+    } catch (error) {
+      setDepartmentsError(error instanceof Error ? error.message : 'Failed to update department')
+    }
+  }
+
+  async function removeDepartment(id: string) {
+    setDepartmentsError('')
+    try {
+      await deleteDepartment(id)
+      setDepartments(prev => prev.filter(dep => dep.id !== id))
+      if (editingDepartment?.id === id) {
+        setEditingDepartment(null)
+      }
+    } catch (error) {
+      setDepartmentsError(error instanceof Error ? error.message : 'Failed to delete department')
+    }
+  }
+
   async function createNewDocumentType() {
     if (!newDocumentType.name.trim() || !newDocumentType.description.trim()) return
     setCreatingDocumentType(true)
@@ -369,6 +443,31 @@ export default function SettingsPage() {
       setDocumentTypes(prev => prev.filter(type => type.id !== id))
     } catch (error) {
       setDocumentTypesError(error instanceof Error ? error.message : 'Failed to delete document type')
+    }
+  }
+
+  async function syncLocations() {
+    setLocationsSyncing(true)
+    setLocationsError('')
+    setLocationsMessage('')
+    try {
+      const response = await fetch('/api/locations/sync', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null) as { error?: string; details?: string } | null
+        throw new Error(payload?.details || payload?.error || `Failed to sync locations (${response.status})`)
+      }
+
+      const payload = await response.json() as { synced?: number; total?: number }
+      setLocationsMessage(`Successfully synced ${payload.synced ?? 0} location(s) (${payload.total ?? 0} total available)`)
+    } catch (error) {
+      setLocationsError(error instanceof Error ? error.message : 'Failed to sync locations')
+    } finally {
+      setLocationsSyncing(false)
     }
   }
 
@@ -408,6 +507,91 @@ export default function SettingsPage() {
       <AccordionSection title="Compliance Dashboard Link">
         <p className="text-sm text-slate-600">Open the compliance dashboard to review aging documents and category coverage.</p>
         <Link to="/admin/compliance" className="btn-lite inline-flex">Go to Compliance Dashboard</Link>
+      </AccordionSection>
+
+      <AccordionSection title="Manage Locations">
+        <p className="text-sm text-slate-600 mb-3">Click "Load Locations" to fetch the latest locations from WCPSS and add them to the database. You only need to do this once a year.</p>
+        {locationsError && <p className="text-sm font-semibold text-red-700 mb-2">{locationsError}</p>}
+        {locationsMessage && <p className="text-sm font-semibold text-green-700 mb-2">{locationsMessage}</p>}
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={syncLocations}
+          disabled={locationsSyncing}
+        >
+          {locationsSyncing ? 'Loading...' : 'Load Locations from WCPSS'}
+        </button>
+      </AccordionSection>
+
+      <AccordionSection title="Manage Departments">
+        {departmentsLoading && <p className="text-sm text-slate-600">Loading departments...</p>}
+        {departmentsError && <p className="text-sm font-semibold text-red-700">{departmentsError}</p>}
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              className="input-shell flex-1"
+              placeholder="New department name"
+              value={newDepartmentName}
+              onChange={(e) => setNewDepartmentName(e.target.value)}
+            />
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={createNewDepartment}
+              disabled={creatingDepartment || !newDepartmentName.trim()}
+            >
+              {creatingDepartment ? 'Creating...' : 'Add'}
+            </button>
+          </div>
+          <div className="space-y-2">
+            {departments.map(department => (
+              <div key={department.id} className="p-3 border border-slate-300 rounded-[3px]">
+                {editingDepartment?.id === department.id ? (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      className="input-shell"
+                      value={editingDepartment.name}
+                      onChange={(e) => setEditingDepartment(prev => prev ? { ...prev, name: e.target.value } : null)}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={updateExistingDepartment}
+                        disabled={!editingDepartment.name.trim()}
+                      >
+                        Save
+                      </button>
+                      <button type="button" className="btn-lite" onClick={() => setEditingDepartment(null)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{department.name}</span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="btn-lite"
+                        onClick={() => setEditingDepartment(department)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-lite text-red-600"
+                        onClick={() => removeDepartment(department.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </AccordionSection>
 
       <AccordionSection title="Manage Categories">

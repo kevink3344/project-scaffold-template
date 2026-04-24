@@ -28,6 +28,15 @@ const db = createClient({
 })
 
 const DEFAULT_CATEGORIES = ['HR', 'Finance', 'Operations', 'Legal', 'Safety', 'Training']
+const DEFAULT_DEPARTMENTS = [
+  'Human Resources',
+  'Communications',
+  'Information Technology',
+  'Student Services',
+  'Facilities and Maintenance',
+  'Special Education Services',
+  'Student Assignment',
+]
 const ALLOWED_USER_ROLES = new Set(['admin', 'user', 'support', 'analyst', 'manager'])
 
 const SEEDED_DOCUMENTS = [
@@ -46,7 +55,7 @@ const SEEDED_DOCUMENTS = [
     notes: 'Required reading for all warehouse team members.',
     hazard_tags: ['Flammable', 'Compressed Gas'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Warehouse Staff', 'Safety Team'],
+    departments: ['Warehouse Staff', 'Safety Team'],
   },
   {
     id: 'doc-002',
@@ -63,7 +72,7 @@ const SEEDED_DOCUMENTS = [
     notes: 'Annual acknowledgement required.',
     hazard_tags: [],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['All Staff'],
+    departments: ['All Staff'],
   },
   {
     id: 'doc-003',
@@ -80,7 +89,7 @@ const SEEDED_DOCUMENTS = [
     notes: 'Draft pending approval by legal counsel.',
     hazard_tags: ['Confidential'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Procurement', 'Legal'],
+    departments: ['Procurement', 'Legal'],
   },
   {
     id: 'doc-004',
@@ -97,7 +106,7 @@ const SEEDED_DOCUMENTS = [
     notes: 'Superseded by SOP-OPS-052.',
     hazard_tags: ['Emergency'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['All Staff'],
+    departments: ['All Staff'],
   },
 ]
 
@@ -117,7 +126,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Used during first-week onboarding with manager sign-off.',
     hazard_tags: [],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['HR Team', 'Managers'],
+    departments: ['HR Team', 'Managers'],
   },
   {
     id: 'doc-seed-hr-2',
@@ -134,7 +143,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Defines hybrid scheduling and home office requirements.',
     hazard_tags: [],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['All Staff'],
+    departments: ['All Staff'],
   },
   {
     id: 'doc-seed-hr-3',
@@ -151,7 +160,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Step-by-step process and rating calibration guidance.',
     hazard_tags: [],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Managers', 'HR Team'],
+    departments: ['Managers', 'HR Team'],
   },
   {
     id: 'doc-seed-hr-4',
@@ -168,7 +177,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Escalation matrix for conduct concerns and case tracking.',
     hazard_tags: ['Sensitive'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['HR Team'],
+    departments: ['HR Team'],
   },
   {
     id: 'doc-seed-fin-1',
@@ -185,7 +194,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Defines spend categories, limits, and approval workflow.',
     hazard_tags: ['Compliance'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Department Leads', 'Finance'],
+    departments: ['Department Leads', 'Finance'],
   },
   {
     id: 'doc-seed-fin-2',
@@ -202,7 +211,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Runbook for accruals, reconciliations, and sign-off.',
     hazard_tags: [],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Finance Team'],
+    departments: ['Finance Team'],
   },
   {
     id: 'doc-seed-fin-3',
@@ -219,7 +228,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Approval thresholds by cost center and spend class.',
     hazard_tags: ['Internal Use'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Executives', 'Finance'],
+    departments: ['Executives', 'Finance'],
   },
   {
     id: 'doc-seed-fin-4',
@@ -236,7 +245,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Accepted expense classes and required receipt documentation.',
     hazard_tags: [],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['All Staff'],
+    departments: ['All Staff'],
   },
   {
     id: 'doc-seed-ops-1',
@@ -253,7 +262,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Standard handover log and exception handoff process.',
     hazard_tags: ['Operational Risk'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Operations Team'],
+    departments: ['Operations Team'],
   },
   {
     id: 'doc-seed-ops-2',
@@ -270,7 +279,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Escalation contacts and required response times by severity.',
     hazard_tags: ['Emergency'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Operations Leads', 'Maintenance'],
+    departments: ['Operations Leads', 'Maintenance'],
   },
   {
     id: 'doc-seed-ops-3',
@@ -287,7 +296,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Receiving, inspection, and put-away sequence.',
     hazard_tags: ['Forklift Traffic'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Warehouse Staff'],
+    departments: ['Warehouse Staff'],
   },
   {
     id: 'doc-seed-ops-4',
@@ -304,7 +313,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'KPI thresholds and escalation pathways for missed SLAs.',
     hazard_tags: [],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Operations Analysts'],
+    departments: ['Operations Analysts'],
   },
   {
     id: 'doc-seed-leg-1',
@@ -321,7 +330,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Required clauses and risk scoring for first-pass reviews.',
     hazard_tags: ['Confidential'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Legal Team'],
+    departments: ['Legal Team'],
   },
   {
     id: 'doc-seed-leg-2',
@@ -338,7 +347,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Retention timelines by document class and jurisdiction.',
     hazard_tags: ['Regulatory'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['All Staff', 'Legal'],
+    departments: ['All Staff', 'Legal'],
   },
   {
     id: 'doc-seed-leg-3',
@@ -355,7 +364,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Signature authorities and record storage requirements.',
     hazard_tags: ['Confidential'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Legal Team', 'Sales Ops'],
+    departments: ['Legal Team', 'Sales Ops'],
   },
   {
     id: 'doc-seed-leg-4',
@@ -372,7 +381,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Response template and owner responsibilities for audits.',
     hazard_tags: ['Regulatory', 'Sensitive'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Legal Team', 'Executives'],
+    departments: ['Legal Team', 'Executives'],
   },
   {
     id: 'doc-seed-saf-1',
@@ -389,7 +398,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Daily inspection requirements for issued PPE.',
     hazard_tags: ['PPE'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Safety Team', 'Supervisors'],
+    departments: ['Safety Team', 'Supervisors'],
   },
   {
     id: 'doc-seed-saf-2',
@@ -406,7 +415,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Submission timelines, forms, and escalation contacts.',
     hazard_tags: ['Emergency'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['All Staff'],
+    departments: ['All Staff'],
   },
   {
     id: 'doc-seed-saf-3',
@@ -423,7 +432,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Labeling and SDS accessibility requirements.',
     hazard_tags: ['Chemical', 'Regulatory'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Operations Team', 'Safety Team'],
+    departments: ['Operations Team', 'Safety Team'],
   },
   {
     id: 'doc-seed-saf-4',
@@ -440,7 +449,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Updated muster points and floor warden assignments.',
     hazard_tags: ['Emergency'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['All Staff'],
+    departments: ['All Staff'],
   },
   {
     id: 'doc-seed-trn-1',
@@ -457,7 +466,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Core modules for leadership and compliance readiness.',
     hazard_tags: [],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Supervisors'],
+    departments: ['Supervisors'],
   },
   {
     id: 'doc-seed-trn-2',
@@ -474,7 +483,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Recertification cadence and practical assessment rubric.',
     hazard_tags: ['Forklift Safety'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Warehouse Staff'],
+    departments: ['Warehouse Staff'],
   },
   {
     id: 'doc-seed-trn-3',
@@ -491,7 +500,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Course requirements by role and renewal date windows.',
     hazard_tags: ['Compliance'],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['All Staff', 'Managers'],
+    departments: ['All Staff', 'Managers'],
   },
   {
     id: 'doc-seed-trn-4',
@@ -508,7 +517,7 @@ const CATEGORY_SEED_DOCUMENTS = [
     notes: 'Provisioning steps for learners and instructor cohorts.',
     hazard_tags: [],
     pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    audience: ['Training Team', 'IT Support'],
+    departments: ['Training Team', 'IT Support'],
   },
 ]
 
@@ -610,7 +619,7 @@ function rowToDocument(row) {
     notes: String(row.notes || ''),
     hazard_tags: parseJsonArray(row.hazard_tags_json),
     pdf_url: String(row.pdf_url || ''),
-    audience: parseJsonArray(row.audience_json),
+    departments: parseJsonArray(row.departments_json ?? row.audience_json),
   }
 }
 
@@ -663,7 +672,8 @@ await db.executeMultiple(`
     notes           TEXT NOT NULL DEFAULT '',
     hazard_tags_json TEXT NOT NULL DEFAULT '[]',
     pdf_url         TEXT NOT NULL DEFAULT '',
-    audience_json   TEXT NOT NULL DEFAULT '[]',
+    departments_json TEXT NOT NULL DEFAULT '[]',
+    audience_json    TEXT NOT NULL DEFAULT '[]',
     created_at      TEXT NOT NULL,
     updated_at      TEXT NOT NULL
   );
@@ -715,14 +725,37 @@ await db.executeMultiple(`
     note        TEXT NOT NULL DEFAULT '',
     created_at  TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS locations (
+    id              INTEGER PRIMARY KEY,
+    name            TEXT NOT NULL UNIQUE,
+    created_at      TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS departments (
+    id              TEXT PRIMARY KEY,
+    name            TEXT NOT NULL UNIQUE,
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+  );
 `)
+
+// Backfill documents.departments_json for older databases that only had audience_json.
+{
+  const columnResult = await db.execute('PRAGMA table_info(documents)')
+  const columnNames = new Set(columnResult.rows.map((row) => String(row[1] || '')))
+  if (!columnNames.has('departments_json')) {
+    await db.execute("ALTER TABLE documents ADD COLUMN departments_json TEXT NOT NULL DEFAULT '[]'")
+  }
+  await db.execute("UPDATE documents SET departments_json = COALESCE(NULLIF(departments_json, ''), audience_json, '[]')")
+}
 
 async function insertSeedDocument(doc) {
   const now = new Date().toISOString()
   await db.execute({
     sql: `INSERT OR IGNORE INTO documents
-          (id, name, issuer, code, revision_date, format_type, status_badge, status, doc_type, locations_json, notes, hazard_tags_json, pdf_url, audience_json, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (id, name, issuer, code, revision_date, format_type, status_badge, status, doc_type, locations_json, notes, hazard_tags_json, pdf_url, departments_json, audience_json, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       doc.id,
       doc.name,
@@ -737,7 +770,8 @@ async function insertSeedDocument(doc) {
       doc.notes,
       JSON.stringify(doc.hazard_tags),
       doc.pdf_url,
-      JSON.stringify(doc.audience),
+      JSON.stringify(doc.departments || []),
+      JSON.stringify(doc.departments || []),
       now,
       now,
     ],
@@ -764,6 +798,22 @@ async function insertSeedDocument(doc) {
       })
     }
     console.log('[db] Seeded default categories.')
+  }
+}
+
+// Seed departments if table is empty
+{
+  const countResult = await db.execute('SELECT COUNT(*) as count FROM departments')
+  const deptCount = Number(countResult.rows[0][0])
+  if (deptCount === 0) {
+    const now = new Date().toISOString()
+    for (const name of DEFAULT_DEPARTMENTS) {
+      await db.execute({
+        sql: 'INSERT OR IGNORE INTO departments (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)',
+        args: [`dept-${crypto.randomUUID()}`, name, now, now],
+      })
+    }
+    console.log('[db] Seeded default departments.')
   }
 }
 
@@ -952,9 +1002,9 @@ async function buildReminderNotifications(userContext, limit) {
       if (isAdmin) return true
 
       const docCategories = (doc.categories || []).map((item) => String(item).toLowerCase())
-      const docAudience = (doc.audience || []).map((item) => String(item).toLowerCase())
+      const docDepartments = (doc.departments || []).map((item) => String(item).toLowerCase())
       const categoryMatch = docCategories.some((category) => userCategories.has(category))
-      const roleMatch = docAudience.includes(userRole) || docAudience.includes('all staff')
+      const roleMatch = docDepartments.includes(userRole) || docDepartments.includes('all staff')
 
       return categoryMatch || roleMatch
     })
@@ -1507,6 +1557,209 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ---------------------------------------------------------------------------
+  // Departments
+  // ---------------------------------------------------------------------------
+
+  // GET /api/departments — list all
+  if (url.pathname === '/api/departments' && req.method === 'GET') {
+    const result = await db.execute('SELECT id, name, created_at, updated_at FROM departments ORDER BY name')
+    sendJson(res, 200, { departments: rowsToObjs(result) })
+    return
+  }
+
+  // POST /api/departments — create
+  if (url.pathname === '/api/departments' && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req)
+      const name = String(body.name || '').trim()
+      if (!name) {
+        sendJson(res, 400, { error: 'name is required' })
+        return
+      }
+      const now = new Date().toISOString()
+      const id = `dept-${crypto.randomUUID()}`
+      await db.execute({
+        sql: 'INSERT INTO departments (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)',
+        args: [id, name, now, now],
+      })
+      sendJson(res, 201, { id, name, created_at: now, updated_at: now })
+    } catch (err) {
+      if (String(err?.message).includes('UNIQUE')) {
+        sendJson(res, 409, { error: 'A department with that name already exists.' })
+      } else {
+        sendJson(res, 400, { error: 'Bad request' })
+      }
+    }
+    return
+  }
+
+  // PUT /api/departments/:id — update
+  {
+    const updateMatch = url.pathname.match(/^\/api\/departments\/([^/]+)$/)
+    if (updateMatch && req.method === 'PUT') {
+      try {
+        const id = decodeURIComponent(updateMatch[1])
+        const body = await readJsonBody(req)
+        const name = String(body.name || '').trim()
+        if (!name) {
+          sendJson(res, 400, { error: 'name is required' })
+          return
+        }
+        const now = new Date().toISOString()
+        const existing = await db.execute({ sql: 'SELECT id FROM departments WHERE id = ?', args: [id] })
+        if (!existing.rows.length) {
+          sendJson(res, 404, { error: 'Department not found' })
+          return
+        }
+        await db.execute({
+          sql: 'UPDATE departments SET name = ?, updated_at = ? WHERE id = ?',
+          args: [name, now, id],
+        })
+        const updated = await db.execute({
+          sql: 'SELECT id, name, created_at, updated_at FROM departments WHERE id = ?',
+          args: [id],
+        })
+        sendJson(res, 200, rowToObj(updated))
+      } catch (err) {
+        if (String(err?.message).includes('UNIQUE')) {
+          sendJson(res, 409, { error: 'A department with that name already exists.' })
+        } else {
+          sendJson(res, 400, { error: 'Bad request' })
+        }
+      }
+      return
+    }
+  }
+
+  // DELETE /api/departments/:id
+  {
+    const deleteMatch = url.pathname.match(/^\/api\/departments\/([^/]+)$/)
+    if (deleteMatch && req.method === 'DELETE') {
+      const departmentId = deleteMatch[1]
+      await db.execute({ sql: 'DELETE FROM departments WHERE id = ?', args: [departmentId] })
+      sendJson(res, 200, { deleted: departmentId })
+      return
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Locations (from SQLite database, populated via sync endpoint)
+  // ---------------------------------------------------------------------------
+
+  // GET /api/locations — list all locations from database
+  if (url.pathname === '/api/locations' && req.method === 'GET') {
+    try {
+      const result = await db.execute('SELECT id, name FROM locations ORDER BY name')
+      const locations = result.rows.map(row => ({
+        id: row[0],
+        name: row[1],
+      }))
+      sendJson(res, 200, { locations })
+      return
+    } catch (err) {
+      console.error('[locations] Error fetching from database:', err)
+      sendJson(res, 500, { 
+        error: 'Failed to fetch locations',
+        details: err instanceof Error ? err.message : 'Unknown error'
+      })
+      return
+    }
+  }
+
+  // POST /api/locations/sync — fetch from ArcGIS and populate database (admin only, or unrestricted in DEV_MODE)
+  if (url.pathname === '/api/locations/sync' && req.method === 'POST') {
+    try {
+      // In dev mode, allow without auth. In production, require admin role.
+      if (!DEV_MODE) {
+        const context = await getAuthenticatedRequestContext(req, cookies)
+        if (!context.authenticated || !context.user) {
+          sendJson(res, 401, { error: 'Unauthorized' })
+          return
+        }
+
+        const requesterRole = String(context.user.role || 'user').toLowerCase()
+        if (requesterRole !== 'admin') {
+          sendJson(res, 403, { error: 'Admin role required' })
+          return
+        }
+      }
+
+      console.log('[locations-sync] Fetching from ArcGIS...')
+      const arcgisUrl = 'https://services2.arcgis.com/oqISN6Dt6ax5xklN/arcgis/rest/services/wcpss_location_details_opendata_public/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson'
+      const response = await fetch(arcgisUrl, { timeout: 10000 })
+      
+      if (!response.ok) {
+        throw new Error(`ArcGIS API returned ${response.status}: ${response.statusText}`)
+      }
+
+      const geojson = await response.json()
+      console.log('[locations-sync] GeoJSON received, features count:', geojson.features?.length || 0)
+
+      if (!geojson.features || !Array.isArray(geojson.features)) {
+        throw new Error('Invalid GeoJSON: missing features array')
+      }
+
+      if (geojson.features.length === 0) {
+        console.warn('[locations-sync] GeoJSON has no features')
+        sendJson(res, 200, { synced: 0 })
+        return
+      }
+
+      // Log first feature to see property names
+      if (geojson.features.length > 0) {
+        console.log('[locations-sync] Sample feature properties:', Object.keys(geojson.features[0].properties || {}))
+        console.log('[locations-sync] Sample feature:', JSON.stringify(geojson.features[0], null, 2).substring(0, 500))
+      }
+
+      // Extract and sort locations - check multiple possible property names
+      let extractedBefore = []
+      const locations = geojson.features
+        .map((feature) => {
+          const props = feature.properties || {}
+          // Try different possible property names
+          const id = props.FID || props.OBJECTID || props.objectid || props.id || props.ID
+          const name = props.NAME || props.location_name || props.locationName || props.Location_Name || props.name || props.Name || props.LOCATION_NAME
+          extractedBefore.push({ id, name })
+          return { id, name }
+        })
+        .filter((loc) => loc.id !== undefined && loc.id !== null && loc.name && String(loc.name).trim())
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
+
+      if (extractedBefore.length > 0) {
+        console.log('[locations-sync] First extracted (before filter):', JSON.stringify(extractedBefore[0]))
+        console.log('[locations-sync] Filter check: id', extractedBefore[0].id !== undefined && extractedBefore[0].id !== null, 'name', extractedBefore[0].name, 'nameOk', !!(extractedBefore[0].name && String(extractedBefore[0].name).trim()))
+      }
+      console.log('[locations-sync] Extracted', locations.length, 'locations after filtering')
+
+      // Insert into database (skip if already exists)
+      const now = new Date().toISOString()
+      let insertedCount = 0
+      for (const loc of locations) {
+        try {
+          await db.execute({
+            sql: 'INSERT OR IGNORE INTO locations (id, name, created_at) VALUES (?, ?, ?)',
+            args: [loc.id, loc.name, now],
+          })
+          insertedCount++
+        } catch (err) {
+          console.log('[locations-sync] Skipped location (likely already exists):', loc.name)
+        }
+      }
+
+      console.log('[locations-sync] Synced', insertedCount, 'locations to database')
+      sendJson(res, 200, { synced: insertedCount, total: locations.length })
+      return
+    } catch (err) {
+      console.error('[locations-sync] Error:', err)
+      sendJson(res, 500, { 
+        error: 'Failed to sync locations',
+        details: err instanceof Error ? err.message : 'Unknown error'
+      })
+      return
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Documents
   // ---------------------------------------------------------------------------
 
@@ -1560,12 +1813,14 @@ const server = http.createServer(async (req, res) => {
       const categories = Array.isArray(input.categories) ? input.categories.map(String) : []
       const locations = Array.isArray(input.locations) ? input.locations.map(String) : []
       const hazardTags = Array.isArray(input.hazard_tags) ? input.hazard_tags.map(String) : []
-      const audience = Array.isArray(input.audience) ? input.audience.map(String) : []
+      const departments = Array.isArray(input.departments)
+        ? input.departments.map(String)
+        : (Array.isArray(input.audience) ? input.audience.map(String) : [])
 
       await db.execute({
         sql: `INSERT INTO documents
-              (id, name, issuer, code, revision_date, format_type, status_badge, status, doc_type, locations_json, notes, hazard_tags_json, pdf_url, audience_json, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              (id, name, issuer, code, revision_date, format_type, status_badge, status, doc_type, locations_json, notes, hazard_tags_json, pdf_url, departments_json, audience_json, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
               ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
                 issuer = excluded.issuer,
@@ -1579,6 +1834,7 @@ const server = http.createServer(async (req, res) => {
                 notes = excluded.notes,
                 hazard_tags_json = excluded.hazard_tags_json,
                 pdf_url = excluded.pdf_url,
+                departments_json = excluded.departments_json,
                 audience_json = excluded.audience_json,
                 updated_at = excluded.updated_at`,
         args: [
@@ -1595,7 +1851,8 @@ const server = http.createServer(async (req, res) => {
           String(input.notes || ''),
           JSON.stringify(hazardTags),
           String(input.pdf_url || ''),
-          JSON.stringify(audience),
+          JSON.stringify(departments),
+          JSON.stringify(departments),
           now,
           now,
         ],

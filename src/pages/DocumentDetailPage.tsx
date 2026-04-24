@@ -12,6 +12,7 @@ export default function DocumentDetailPage() {
   const { id = '' } = useParams()
   const [pageCount, setPageCount] = useState<number | null>(null)
   const [doc, setDoc] = useState<DocumentListRecord | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [thresholds, setThresholds] = useState<FreshnessThresholds>({ currentWithinDays: 365, reviewSoonWithinDays: 730 })
   const [activity, setActivity] = useState<ActivityLogEntry[]>([])
   const [markingReviewed, setMarkingReviewed] = useState(false)
@@ -21,26 +22,34 @@ export default function DocumentDetailPage() {
     let mounted = true
 
     async function loadDoc() {
-      const [documentRecord, fresh, log] = await Promise.all([
-        getDocumentById(id),
-        getFreshnessThresholds(),
-        getActivityLog(id),
-      ])
-      if (!mounted) return
-      setDoc(documentRecord)
-      setThresholds(fresh)
-      setActivity(log)
+      setIsLoading(true)
+      setDoc(null)
+      setPageCount(null)
 
-      if (!documentRecord) return
-      await trackRecentlyViewed(documentRecord.id).catch(() => null)
+      try {
+        const [documentRecord, fresh, log] = await Promise.all([
+          getDocumentById(id),
+          getFreshnessThresholds(),
+          getActivityLog(id),
+        ])
+        if (!mounted) return
+        setDoc(documentRecord)
+        setThresholds(fresh)
+        setActivity(log)
 
-      getDocument(documentRecord.pdf_url).promise
-        .then((pdf) => {
-          if (mounted) setPageCount(pdf.numPages)
-        })
-        .catch(() => {
-          if (mounted) setPageCount(null)
-        })
+        if (!documentRecord) return
+        await trackRecentlyViewed(documentRecord.id).catch(() => null)
+
+        getDocument(documentRecord.pdf_url).promise
+          .then((pdf) => {
+            if (mounted) setPageCount(pdf.numPages)
+          })
+          .catch(() => {
+            if (mounted) setPageCount(null)
+          })
+      } finally {
+        if (mounted) setIsLoading(false)
+      }
     }
 
     void loadDoc()
@@ -59,6 +68,15 @@ export default function DocumentDetailPage() {
     } finally {
       setMarkingReviewed(false)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="card-shell flex items-center justify-center gap-3 py-8 text-slate-600">
+        <span className="h-5 w-5 rounded-full border-2 border-slate-300 border-t-[var(--brand-navy)] animate-spin" aria-hidden="true" />
+        <p>Loading document...</p>
+      </div>
+    )
   }
 
   if (!doc) {
@@ -125,7 +143,7 @@ export default function DocumentDetailPage() {
               <Meta label="Category" value={doc.categories.join(', ')} />
               <Meta label="Locations/Departments" value={doc.locations.join(', ')} />
               <Meta label="Format/Type" value={`${doc.format_type} / ${doc.doc_type}`} />
-              <Meta label="Audience" value={doc.audience.join(', ')} />
+              <Meta label="Departments" value={doc.departments.join(', ')} />
             </div>
 
             <div className="mt-4">
