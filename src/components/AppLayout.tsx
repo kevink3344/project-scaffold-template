@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Bell, BookOpenText, ChevronLeft, LayoutDashboard, Library, LogOut, Menu, Moon, Settings, ShieldCheck, Sun, Upload, LogIn, User } from 'lucide-react'
+import { Bell, BookOpenText, ChevronLeft, LayoutDashboard, Library, LogOut, Menu, Moon, Settings, ShieldCheck, Sun, Upload, User } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { clearAuthToken } from '../services/api/client'
 import { getSessionUser, getStoredUser, login as oidcLogin, logout as oidcLogout, type OidcUser } from '../services/auth'
