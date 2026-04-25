@@ -8,7 +8,7 @@ type ViewMode = 'table' | 'card'
 
 export default function AdminLibraryPage() {
   const [query, setQuery] = useState('')
-  const [viewMode, setViewMode] = useState<ViewMode>('table')
+  const [viewMode, setViewMode] = useState<ViewMode>(() => window.innerWidth < 768 ? 'card' : 'table')
   const [refreshTick, setRefreshTick] = useState(0)
   const [documents, setDocuments] = useState<DocumentListRecord[]>([])
   const [thresholds, setThresholds] = useState<FreshnessThresholds>({ currentWithinDays: 365, reviewSoonWithinDays: 730 })
