@@ -12,6 +12,7 @@ import {
 import { fetchCategories, createCategory, deleteCategory, type CategoryRecord } from '../services/api/categoriesApi'
 import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment, type DepartmentRecord } from '../services/api/departmentsApi'
 import { fetchDocumentTypes, createDocumentType, updateDocumentType, deleteDocumentType, type DocumentTypeRecord } from '../services/api/documentTypesApi'
+import { fetchLocations, createLocation, updateLocation, deleteLocation, type LocationRecord } from '../services/api/locationsApi'
 import type { ThemeConfig } from '../types/documents'
 
 interface SectionProps {
@@ -113,8 +114,13 @@ export default function SettingsPage() {
   const [newDocumentType, setNewDocumentType] = useState({ name: '', description: '' })
   const [creatingDocumentType, setCreatingDocumentType] = useState(false)
   const [editingDocumentType, setEditingDocumentType] = useState<DocumentTypeRecord | null>(null)
-  const [locationsSyncing, setLocationsSyncing] = useState(false)
+  const [locations, setLocations] = useState<LocationRecord[]>([])
+  const [locationsLoading, setLocationsLoading] = useState(true)
   const [locationsError, setLocationsError] = useState('')
+  const [newLocationName, setNewLocationName] = useState('')
+  const [creatingLocation, setCreatingLocation] = useState(false)
+  const [editingLocation, setEditingLocation] = useState<LocationRecord | null>(null)
+  const [locationsSyncing, setLocationsSyncing] = useState(false)
   const [locationsMessage, setLocationsMessage] = useState('')
 
   const paletteRows = useMemo(() => [
@@ -185,6 +191,30 @@ export default function SettingsPage() {
     }
 
     void loadCategories()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadLocations() {
+      setLocationsLoading(true)
+      setLocationsError('')
+      try {
+        const data = await fetchLocations()
+        if (!mounted) return
+        setLocations(data)
+      } catch (error) {
+        if (!mounted) return
+        setLocationsError(error instanceof Error ? error.message : 'Failed to load locations')
+      } finally {
+        if (mounted) setLocationsLoading(false)
+      }
+    }
+
+    void loadLocations()
     return () => {
       mounted = false
     }
@@ -412,6 +442,46 @@ export default function SettingsPage() {
     }
   }
 
+  async function createNewLocation() {
+    if (!newLocationName.trim()) return
+    setCreatingLocation(true)
+    setLocationsError('')
+    try {
+      const created = await createLocation(newLocationName.trim())
+      setLocations(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)))
+      setNewLocationName('')
+    } catch (error) {
+      setLocationsError(error instanceof Error ? error.message : 'Failed to create location')
+    } finally {
+      setCreatingLocation(false)
+    }
+  }
+
+  async function updateExistingLocation() {
+    if (!editingLocation) return
+    setLocationsError('')
+    try {
+      const updated = await updateLocation(editingLocation.id, editingLocation.name)
+      setLocations(prev => prev.map(loc => loc.id === updated.id ? updated : loc).sort((a, b) => a.name.localeCompare(b.name)))
+      setEditingLocation(null)
+    } catch (error) {
+      setLocationsError(error instanceof Error ? error.message : 'Failed to update location')
+    }
+  }
+
+  async function removeLocation(id: number) {
+    setLocationsError('')
+    try {
+      await deleteLocation(id)
+      setLocations(prev => prev.filter(loc => loc.id !== id))
+      if (editingLocation?.id === id) {
+        setEditingLocation(null)
+      }
+    } catch (error) {
+      setLocationsError(error instanceof Error ? error.message : 'Failed to delete location')
+    }
+  }
+
   async function createNewDocumentType() {
     if (!newDocumentType.name.trim() || !newDocumentType.description.trim()) return
     setCreatingDocumentType(true)
@@ -510,17 +580,86 @@ export default function SettingsPage() {
       </AccordionSection>
 
       <AccordionSection title="Manage Locations">
-        <p className="text-sm text-slate-600 mb-3">Click "Load Locations" to fetch the latest locations from WCPSS and add them to the database. You only need to do this once a year.</p>
+        <p className="text-sm text-slate-600 mb-3">Manage individual locations. You can add, edit, or delete locations, or bulk load them from WCPSS.</p>
         {locationsError && <p className="text-sm font-semibold text-red-700 mb-2">{locationsError}</p>}
         {locationsMessage && <p className="text-sm font-semibold text-green-700 mb-2">{locationsMessage}</p>}
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={syncLocations}
-          disabled={locationsSyncing}
-        >
-          {locationsSyncing ? 'Loading...' : 'Load Locations from WCPSS'}
-        </button>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              className="input-shell flex-1"
+              placeholder="New location name"
+              value={newLocationName}
+              onChange={(e) => setNewLocationName(e.target.value)}
+            />
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={createNewLocation}
+              disabled={creatingLocation || !newLocationName.trim()}
+            >
+              {creatingLocation ? 'Adding...' : 'Add'}
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="btn-lite"
+              onClick={syncLocations}
+              disabled={locationsSyncing}
+            >
+              {locationsSyncing ? 'Loading...' : 'Load Locations from WCPSS'}
+            </button>
+          </div>
+          {locationsLoading && <p className="text-sm text-slate-600">Loading locations...</p>}
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {locations.map(location => (
+              <div key={location.id} className="p-3 border border-slate-300 rounded-[3px]">
+                {editingLocation?.id === location.id ? (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      className="input-shell"
+                      value={editingLocation.name}
+                      onChange={(e) => setEditingLocation(prev => prev ? { ...prev, name: e.target.value } : null)}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={updateExistingLocation}
+                        disabled={!editingLocation.name.trim()}
+                      >
+                        Save
+                      </button>
+                      <button type="button" className="btn-lite" onClick={() => setEditingLocation(null)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{location.name}</span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="btn-lite"
+                        onClick={() => setEditingLocation(location)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-lite text-red-600"
+                        onClick={() => removeLocation(location.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </AccordionSection>
 
       <AccordionSection title="Manage Departments">

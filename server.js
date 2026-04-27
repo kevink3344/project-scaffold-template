@@ -1759,6 +1759,188 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // POST /api/locations — create new location
+  if (url.pathname === '/api/locations' && req.method === 'POST') {
+    try {
+      // In dev mode, allow without auth. In production, require admin role.
+      if (!DEV_MODE) {
+        const context = await getAuthenticatedRequestContext(req, cookies)
+        if (!context.authenticated || !context.user) {
+          sendJson(res, 401, { error: 'Unauthorized' })
+          return
+        }
+
+        const requesterRole = String(context.user.role || 'user').toLowerCase()
+        if (requesterRole !== 'admin') {
+          sendJson(res, 403, { error: 'Admin role required' })
+          return
+        }
+      }
+
+      const body = await readJsonBody(req)
+      const { name } = body
+
+      if (!name || typeof name !== 'string' || !name.trim()) {
+        sendJson(res, 400, { error: 'Location name is required' })
+        return
+      }
+
+      const now = new Date().toISOString()
+      const result = await db.execute({
+        sql: 'INSERT INTO locations (name, created_at) VALUES (?, ?)',
+        args: [name.trim(), now],
+      })
+
+      const newId = result.lastInsertRowid
+      sendJson(res, 201, { 
+        location: { 
+          id: Number(newId), 
+          name: name.trim(), 
+          created_at: now 
+        } 
+      })
+      return
+    } catch (err) {
+      console.error('[locations-create] Error:', err)
+      if (err.message && err.message.includes('UNIQUE constraint failed')) {
+        sendJson(res, 409, { error: 'Location with this name already exists' })
+        return
+      }
+      sendJson(res, 500, { 
+        error: 'Failed to create location',
+        details: err instanceof Error ? err.message : 'Unknown error'
+      })
+      return
+    }
+  }
+
+  // PUT /api/locations/:id — update location
+  {
+    const match = url.pathname.match(/^\/api\/locations\/(\d+)$/)
+    if (match && req.method === 'PUT') {
+      try {
+        // In dev mode, allow without auth. In production, require admin role.
+        if (!DEV_MODE) {
+          const context = await getAuthenticatedRequestContext(req, cookies)
+          if (!context.authenticated || !context.user) {
+            sendJson(res, 401, { error: 'Unauthorized' })
+            return
+          }
+
+          const requesterRole = String(context.user.role || 'user').toLowerCase()
+          if (requesterRole !== 'admin') {
+            sendJson(res, 403, { error: 'Admin role required' })
+            return
+          }
+        }
+
+        const id = parseInt(match[1], 10)
+        if (isNaN(id)) {
+          sendJson(res, 400, { error: 'Invalid location ID' })
+          return
+        }
+
+        const body = await readJsonBody(req)
+        const { name } = body
+
+        if (!name || typeof name !== 'string' || !name.trim()) {
+          sendJson(res, 400, { error: 'Location name is required' })
+          return
+        }
+
+        // Check if location exists
+        const existingResult = await db.execute({
+          sql: 'SELECT id FROM locations WHERE id = ?',
+          args: [id],
+        })
+
+        if (!existingResult.rows.length) {
+          sendJson(res, 404, { error: 'Location not found' })
+          return
+        }
+
+        await db.execute({
+          sql: 'UPDATE locations SET name = ? WHERE id = ?',
+          args: [name.trim(), id],
+        })
+
+        sendJson(res, 200, { 
+          location: { 
+            id, 
+            name: name.trim() 
+          } 
+        })
+        return
+      } catch (err) {
+        console.error('[locations-update] Error:', err)
+        if (err.message && err.message.includes('UNIQUE constraint failed')) {
+          sendJson(res, 409, { error: 'Location with this name already exists' })
+          return
+        }
+        sendJson(res, 500, { 
+          error: 'Failed to update location',
+          details: err instanceof Error ? err.message : 'Unknown error'
+        })
+        return
+      }
+    }
+  }
+
+  // DELETE /api/locations/:id — delete location
+  {
+    const match = url.pathname.match(/^\/api\/locations\/(\d+)$/)
+    if (match && req.method === 'DELETE') {
+      try {
+        // In dev mode, allow without auth. In production, require admin role.
+        if (!DEV_MODE) {
+          const context = await getAuthenticatedRequestContext(req, cookies)
+          if (!context.authenticated || !context.user) {
+            sendJson(res, 401, { error: 'Unauthorized' })
+            return
+          }
+
+          const requesterRole = String(context.user.role || 'user').toLowerCase()
+          if (requesterRole !== 'admin') {
+            sendJson(res, 403, { error: 'Admin role required' })
+            return
+          }
+        }
+
+        const id = parseInt(match[1], 10)
+        if (isNaN(id)) {
+          sendJson(res, 400, { error: 'Invalid location ID' })
+          return
+        }
+
+        // Check if location exists
+        const existingResult = await db.execute({
+          sql: 'SELECT id FROM locations WHERE id = ?',
+          args: [id],
+        })
+
+        if (!existingResult.rows.length) {
+          sendJson(res, 404, { error: 'Location not found' })
+          return
+        }
+
+        await db.execute({
+          sql: 'DELETE FROM locations WHERE id = ?',
+          args: [id],
+        })
+
+        sendJson(res, 200, { deleted: id })
+        return
+      } catch (err) {
+        console.error('[locations-delete] Error:', err)
+        sendJson(res, 500, { 
+          error: 'Failed to delete location',
+          details: err instanceof Error ? err.message : 'Unknown error'
+        })
+        return
+      }
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Documents
   // ---------------------------------------------------------------------------
