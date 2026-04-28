@@ -1298,6 +1298,9 @@ function sendJson(res, statusCode, payload) {
     'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
     Pragma: 'no-cache',
     Expires: '0',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   })
   res.end(JSON.stringify(payload))
 }
@@ -1351,6 +1354,17 @@ const server = http.createServer(async (req, res) => {
 
   const url = new URL(req.url, 'http://localhost')
   const cookies = parseCookies(req.headers.cookie)
+
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    })
+    res.end()
+    return
+  }
 
   // Health check
   if (url.pathname === '/api/health') {

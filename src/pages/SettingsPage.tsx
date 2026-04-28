@@ -579,7 +579,7 @@ export default function SettingsPage() {
         <Link to="/admin/compliance" className="btn-lite inline-flex">Go to Compliance Dashboard</Link>
       </AccordionSection>
 
-      <AccordionSection title="Manage Locations">
+      <AccordionSection title={`Manage Locations (${locations.length})`}>
         <p className="text-sm text-slate-600 mb-3">Manage individual locations. You can add, edit, or delete locations, or bulk load them from WCPSS.</p>
         {locationsError && <p className="text-sm font-semibold text-red-700 mb-2">{locationsError}</p>}
         {locationsMessage && <p className="text-sm font-semibold text-green-700 mb-2">{locationsMessage}</p>}
@@ -662,7 +662,7 @@ export default function SettingsPage() {
         </div>
       </AccordionSection>
 
-      <AccordionSection title="Manage Departments">
+      <AccordionSection title={`Manage Departments (${departments.length})`}>
         {departmentsLoading && <p className="text-sm text-slate-600">Loading departments...</p>}
         {departmentsError && <p className="text-sm font-semibold text-red-700">{departmentsError}</p>}
         <div className="space-y-3">
@@ -733,7 +733,7 @@ export default function SettingsPage() {
         </div>
       </AccordionSection>
 
-      <AccordionSection title="Manage Categories">
+      <AccordionSection title={`Manage Categories (${categories.length})`}>
         {categoriesLoading && <p className="text-sm text-slate-600">Loading categories...</p>}
         {categoriesError && <p className="text-sm font-semibold text-red-700">{categoriesError}</p>}
         <div className="space-y-3">
@@ -771,7 +771,7 @@ export default function SettingsPage() {
         </div>
       </AccordionSection>
 
-      <AccordionSection title="Manage Document Types">
+      <AccordionSection title={`Manage Document Types (${documentTypes.length})`}>
         {documentTypesLoading && <p className="text-sm text-slate-600">Loading document types...</p>}
         {documentTypesError && <p className="text-sm font-semibold text-red-700">{documentTypesError}</p>}
         <div className="space-y-3">
@@ -851,7 +851,7 @@ export default function SettingsPage() {
         </div>
       </AccordionSection>
 
-      <AccordionSection title="Manage Users">
+      <AccordionSection title={`Manage Users (${users.length})`}>
         {usersLoading && <p className="text-sm text-slate-600">Loading users...</p>}
         {usersError && <p className="text-sm font-semibold text-red-700">{usersError}</p>}
         <div className="overflow-x-auto rounded-[3px] border border-slate-300">
